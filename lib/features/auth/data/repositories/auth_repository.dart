@@ -1,0 +1,24 @@
+import '../../../../core/network/api_client.dart';
+import '../../../../core/network/endpoints.dart';
+import '../models/register_request.dart';
+
+class AuthRepository {
+  final ApiClient _apiClient;
+
+  AuthRepository({ApiClient? apiClient})
+      : _apiClient = apiClient ?? ApiClient();
+
+  Future<Map<String, dynamic>> register(RegisterRequest request) async {
+    return _apiClient.post(Endpoints.register, request.toJson());
+  }
+
+  Future<Map<String, dynamic>> login({
+    required String email,
+    required String password,
+  }) async {
+    return _apiClient.post(Endpoints.login, {
+      'email': email,
+      'password': password,
+    });
+  }
+}
