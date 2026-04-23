@@ -1,7 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 import '../../../../core/database/app_database.dart';
 import '../models/exercise.dart';
-import '../models/workout.dart';
+import '../models/workout.dart' show Workout, WorkoutExercise, ExerciseSet;
 
 class WorkoutRepository {
   Future<Database> get _db => AppDatabase.instance.database;
@@ -28,8 +28,21 @@ class WorkoutRepository {
         exercise: exercises[i].exercise,
         orderIndex: i,
         tag: exercises[i].tag,
+        sets: exercises[i].sets,
       );
-      await db.insert('workout_exercises', we.toMap());
+      final weId = await db.insert('workout_exercises', we.toMap());
+
+      final batch = db.batch();
+      for (var s = 0; s < we.sets.length; s++) {
+        final set = ExerciseSet(
+          workoutExerciseId: weId,
+          setNumber: s + 1,
+          reps: we.sets[s].reps,
+          weight: we.sets[s].weight,
+        );
+        batch.insert('exercise_sets', set.toMap());
+      }
+      await batch.commit(noResult: true);
     }
     return workoutId;
   }
@@ -71,7 +84,9 @@ class WorkoutRepository {
       ORDER BY we.orderIndex ASC
     ''', [workoutId]);
 
-    return rows.map((r) {
+    final result = <WorkoutExercise>[];
+    for (final r in rows) {
+      final weId = r['id'] as int;
       final exercise = Exercise(
         id: r['exerciseId'] as int,
         name: r['name'] as String,
@@ -79,13 +94,24 @@ class WorkoutRepository {
         muscleGroup: r['muscleGroup'] as String,
         type: r['type'] as String,
       );
-      return WorkoutExercise(
-        id: r['id'] as int,
+
+      final setRows = await db.query(
+        'exercise_sets',
+        where: 'workoutExerciseId = ?',
+        whereArgs: [weId],
+        orderBy: 'setNumber ASC',
+      );
+      final sets = setRows.map(ExerciseSet.fromMap).toList();
+
+      result.add(WorkoutExercise(
+        id: weId,
         workoutId: r['workoutId'] as int,
         exercise: exercise,
         orderIndex: r['orderIndex'] as int,
         tag: r['tag'] as String? ?? exercise.autoTag,
-      );
-    }).toList();
+        sets: sets,
+      ));
+    }
+    return result;
   }
 }

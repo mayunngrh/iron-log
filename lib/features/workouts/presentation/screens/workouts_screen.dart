@@ -346,6 +346,37 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
                 ),
               ],
             ),
+            if (workout.exercises.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              const Divider(color: AppColors.inputBorder, height: 1),
+              const SizedBox(height: 12),
+              ...workout.exercises.map((we) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      children: [
+                        Text(
+                          we.exercise.name,
+                          style: AppTextStyles.sectionTitle.copyWith(
+                              fontSize: 13, color: AppColors.textPrimary),
+                        ),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: CustomPaint(
+                              painter: _DottedLinePainter(),
+                              size: Size.infinite,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          '${we.sets.length} set${we.sets.length == 1 ? '' : 's'}',
+                          style: AppTextStyles.label.copyWith(
+                              fontSize: 11, color: AppColors.primary),
+                        ),
+                      ],
+                    ),
+                  )),
+            ],
             const SizedBox(height: 14),
             SizedBox(
               width: double.infinity,
@@ -452,4 +483,29 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
       ),
     );
   }
+}
+
+class _DottedLinePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = AppColors.inputBorder
+      ..strokeWidth = 1;
+
+    const dashWidth = 3.0;
+    const dashSpace = 3.0;
+    double startX = 0;
+
+    while (startX < size.width) {
+      canvas.drawLine(
+        Offset(startX, size.height / 2),
+        Offset(startX + dashWidth, size.height / 2),
+        paint,
+      );
+      startX += dashWidth + dashSpace;
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DottedLinePainter oldDelegate) => false;
 }

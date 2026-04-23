@@ -15,7 +15,12 @@ class AppDatabase {
 
   Future<Database> _init() async {
     final path = join(await getDatabasesPath(), 'ironlog.db');
-    return openDatabase(path, version: 1, onCreate: _onCreate);
+    return openDatabase(
+      path,
+      version: 2,
+      onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
+    );
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -52,10 +57,36 @@ class AppDatabase {
       )
     ''');
 
+    await db.execute('''
+      CREATE TABLE exercise_sets (
+        id                INTEGER PRIMARY KEY AUTOINCREMENT,
+        workoutExerciseId INTEGER NOT NULL,
+        setNumber         INTEGER NOT NULL,
+        reps              INTEGER NOT NULL DEFAULT 0,
+        weight            REAL    NOT NULL DEFAULT 0.0,
+        FOREIGN KEY (workoutExerciseId) REFERENCES workout_exercises(id) ON DELETE CASCADE
+      )
+    ''');
+
     final batch = db.batch();
     for (final e in ExerciseSeeds.all) {
       batch.insert('exercises', e);
     }
     await batch.commit(noResult: true);
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('''
+        CREATE TABLE exercise_sets (
+          id                INTEGER PRIMARY KEY AUTOINCREMENT,
+          workoutExerciseId INTEGER NOT NULL,
+          setNumber         INTEGER NOT NULL,
+          reps              INTEGER NOT NULL DEFAULT 0,
+          weight            REAL    NOT NULL DEFAULT 0.0,
+          FOREIGN KEY (workoutExerciseId) REFERENCES workout_exercises(id) ON DELETE CASCADE
+        )
+      ''');
+    }
   }
 }

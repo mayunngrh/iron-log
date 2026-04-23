@@ -6,6 +6,53 @@ import '../../data/models/workout.dart';
 import '../../data/repositories/workout_repository.dart';
 import '../widgets/exercise_picker_sheet.dart';
 
+class _SetDraft {
+  final TextEditingController repsCtrl;
+  final TextEditingController weightCtrl;
+
+  _SetDraft()
+      : repsCtrl = TextEditingController(),
+        weightCtrl = TextEditingController();
+
+  void dispose() {
+    repsCtrl.dispose();
+    weightCtrl.dispose();
+  }
+
+  ExerciseSet toSet(int weId, int setNum) => ExerciseSet(
+        workoutExerciseId: weId,
+        setNumber: setNum,
+        reps: int.tryParse(repsCtrl.text.trim()) ?? 0,
+        weight: double.tryParse(weightCtrl.text.trim()) ?? 0.0,
+      );
+}
+
+class _ExerciseDraft {
+  final Exercise exercise;
+  final String tag;
+  final List<_SetDraft> sets;
+
+  _ExerciseDraft(this.exercise, this.tag) : sets = [];
+
+  void dispose() {
+    for (final s in sets) {
+      s.dispose();
+    }
+  }
+
+  WorkoutExercise toWorkoutExercise(int orderIndex) => WorkoutExercise(
+        workoutId: 0,
+        exercise: exercise,
+        orderIndex: orderIndex,
+        tag: tag,
+        sets: sets
+            .asMap()
+            .entries
+            .map((e) => e.value.toSet(0, e.key + 1))
+            .toList(),
+      );
+}
+
 class AddWorkoutScreen extends StatefulWidget {
   const AddWorkoutScreen({super.key});
 
@@ -19,17 +66,25 @@ class _AddWorkoutScreenState extends State<AddWorkoutScreen> {
   final _repo = WorkoutRepository();
 
   String _methodology = 'STRENGTH';
-  final List<WorkoutExercise> _exercises = [];
+  final List<_ExerciseDraft> _exercises = [];
   bool _isSaving = false;
 
   @override
   void dispose() {
     _nameController.dispose();
     _notesController.dispose();
+    for (final d in _exercises) {
+      d.dispose();
+    }
     super.dispose();
   }
 
-  int get _estimatedDuration => _exercises.isEmpty ? 30 : _exercises.length * 15;
+  int get _estimatedDuration {
+    if (_exercises.isEmpty) return 30;
+    final totalSets =
+        _exercises.fold<int>(0, (sum, d) => sum + d.sets.length);
+    return totalSets == 0 ? _exercises.length * 15 : totalSets * 3;
+  }
 
   Future<void> _openExercisePicker() async {
     final exercise = await showModalBottomSheet<Exercise>(
@@ -42,12 +97,7 @@ class _AddWorkoutScreenState extends State<AddWorkoutScreen> {
     );
     if (exercise != null) {
       setState(() {
-        _exercises.add(WorkoutExercise(
-          workoutId: 0,
-          exercise: exercise,
-          orderIndex: _exercises.length,
-          tag: exercise.autoTag,
-        ));
+        _exercises.add(_ExerciseDraft(exercise, exercise.autoTag));
       });
     }
   }
@@ -74,7 +124,12 @@ class _AddWorkoutScreenState extends State<AddWorkoutScreen> {
             : _notesController.text.trim(),
         createdAt: DateTime.now(),
       );
-      await _repo.saveWorkout(workout, _exercises);
+      final exercisesForSave = _exercises
+          .asMap()
+          .entries
+          .map((e) => e.value.toWorkoutExercise(e.key))
+          .toList();
+      await _repo.saveWorkout(workout, exercisesForSave);
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       _showSnack('Failed to save workout');
@@ -301,41 +356,182 @@ class _AddWorkoutScreenState extends State<AddWorkoutScreen> {
   }
 
   Widget _buildExerciseRow(int index) {
-    final we = _exercises[index];
+    final draft = _exercises[index];
     return Container(
-      key: ValueKey(we.exercise.id),
+      key: ValueKey(draft.exercise.id),
       margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(10),
-        border:
-            Border.all(color: AppColors.inputBorder, width: 0.5),
+        border: Border.all(color: AppColors.inputBorder, width: 0.5),
       ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.drag_indicator_rounded,
+                  color: AppColors.textSecondary, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(draft.exercise.name,
+                        style: AppTextStyles.sectionTitle.copyWith(fontSize: 15)),
+                    const SizedBox(height: 2),
+                    Text(draft.tag,
+                        style: AppTextStyles.body.copyWith(fontSize: 11)),
+                  ],
+                ),
+              ),
+              GestureDetector(
+                onTap: () =>
+                    setState(() {
+                      draft.dispose();
+                      _exercises.removeAt(index);
+                    }),
+                child: const Icon(Icons.close_rounded,
+                    color: AppColors.textSecondary, size: 20),
+              ),
+            ],
+          ),
+          if (draft.sets.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 50,
+                    child: Text('SET',
+                        style: AppTextStyles.sectionTitle.copyWith(fontSize: 11, color: AppColors.textSecondary)),
+                  ),
+                  SizedBox(
+                    width: 70,
+                    child: Text('REPS',
+                        style: AppTextStyles.sectionTitle.copyWith(fontSize: 11, color: AppColors.textSecondary)),
+                  ),
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: 80,
+                    child: Text('WEIGHT',
+                        style: AppTextStyles.sectionTitle.copyWith(fontSize: 11, color: AppColors.textSecondary)),
+                  ),
+                ],
+              ),
+            ),
+            ...draft.sets.asMap().entries.map((e) => _buildSetRow(index, e.key, e.value)),
+          ],
+          const SizedBox(height: 12),
+          _buildAddSetButton(index),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSetRow(int exIdx, int setIdx, _SetDraft draft) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
       child: Row(
         children: [
-          const Icon(Icons.drag_indicator_rounded,
-              color: AppColors.textSecondary, size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(we.exercise.name,
-                    style:
-                        AppTextStyles.sectionTitle.copyWith(fontSize: 15)),
-                const SizedBox(height: 2),
-                Text(we.tag,
-                    style: AppTextStyles.body.copyWith(fontSize: 11)),
-              ],
+          SizedBox(
+            width: 50,
+            child: Text(
+              'SET ${setIdx + 1}',
+              style: AppTextStyles.sectionTitle.copyWith(
+                  fontSize: 14, color: AppColors.primary),
             ),
           ),
+          _compactField(draft.repsCtrl, width: 70, hint: '0', isInt: true),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text('×',
+                style: AppTextStyles.sectionTitle.copyWith(
+                    fontSize: 18, color: AppColors.textSecondary)),
+          ),
+          _compactField(draft.weightCtrl, width: 80, hint: '0', isInt: false),
+          Padding(
+            padding: const EdgeInsets.only(left: 8),
+            child: Text('KG',
+                style: AppTextStyles.sectionTitle.copyWith(fontSize: 12)),
+          ),
+          const Spacer(),
           GestureDetector(
-            onTap: () => setState(() => _exercises.removeAt(index)),
+            onTap: () =>
+                setState(() {
+                  draft.dispose();
+                  _exercises[exIdx].sets.removeAt(setIdx);
+                }),
             child: const Icon(Icons.close_rounded,
-                color: AppColors.textSecondary, size: 20),
+                color: AppColors.textSecondary, size: 18),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _compactField(TextEditingController ctrl,
+      {required double width,
+      required String hint,
+      required bool isInt}) {
+    return SizedBox(
+      width: width,
+      height: 48,
+      child: TextField(
+        controller: ctrl,
+        keyboardType: isInt
+            ? TextInputType.number
+            : const TextInputType.numberWithOptions(decimal: true),
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          color: AppColors.textPrimary,
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+        ),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: AppTextStyles.body.copyWith(fontSize: 16),
+          filled: true,
+          fillColor: AppColors.cardBackground,
+          contentPadding: const EdgeInsets.symmetric(vertical: 8),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide:
+                const BorderSide(color: AppColors.inputBorder, width: 1),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: AppColors.primary, width: 2),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAddSetButton(int index) {
+    return GestureDetector(
+      onTap: () => setState(() => _exercises[index].sets.add(_SetDraft())),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          border: Border.all(color: AppColors.inputBorder),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.add_rounded,
+                color: AppColors.primary, size: 20),
+            const SizedBox(width: 6),
+            Text('ADD SET',
+                style: AppTextStyles.sectionTitle.copyWith(fontSize: 13, color: AppColors.primary)),
+          ],
+        ),
       ),
     );
   }
