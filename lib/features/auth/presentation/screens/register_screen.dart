@@ -14,7 +14,8 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final _fullNameController = TextEditingController();
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -27,7 +28,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   void dispose() {
-    _fullNameController.dispose();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
     _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
@@ -36,7 +38,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _handleRegister() async {
-    if (_fullNameController.text.isEmpty ||
+    if (_firstNameController.text.isEmpty ||
+        _lastNameController.text.isEmpty ||
         _usernameController.text.isEmpty ||
         _emailController.text.isEmpty ||
         _passwordController.text.isEmpty ||
@@ -55,7 +58,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       await _repository.register(
         RegisterRequest(
           email: _emailController.text.trim(),
-          fullName: _fullNameController.text.trim(),
+          firstName: _firstNameController.text.trim(),
+          lastName: _lastNameController.text.trim(),
           password: _passwordController.text,
           username: _usernameController.text.trim(),
         ),
@@ -131,13 +135,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: Stack(
               alignment: Alignment.center,
               children: [
-                Icon(
-                  Icons.security_rounded,
-                  color: AppColors.primary,
-                  size: 64,
-                ),
-                const Positioned(
-                  child: Icon(Icons.favorite, color: Colors.white, size: 24),
+                Image.asset(
+                  'assets/images/logo_icon.png',
+                  height: 80,
+                  fit: BoxFit.contain,
                 ),
               ],
             ),
@@ -155,12 +156,38 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('WARRIOR NAME', style: AppTextStyles.label),
-        const SizedBox(height: 8),
-        IronTextField(
-          controller: _fullNameController,
-          hint: 'FULL NAME',
-          keyboardType: TextInputType.name,
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('FIRST NAME', style: AppTextStyles.label),
+                  const SizedBox(height: 8),
+                  IronTextField(
+                    controller: _firstNameController,
+                    hint: 'FIRST NAME',
+                    keyboardType: TextInputType.name,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('LAST NAME', style: AppTextStyles.label),
+                  const SizedBox(height: 8),
+                  IronTextField(
+                    controller: _lastNameController,
+                    hint: 'LAST NAME',
+                    keyboardType: TextInputType.name,
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 16),
         Text('IRON CALLSIGN', style: AppTextStyles.label),

@@ -5,6 +5,7 @@ import '../../../../features/auth/data/repositories/auth_repository.dart';
 import '../widgets/iron_button.dart';
 import '../widgets/iron_text_field.dart';
 import 'register_screen.dart';
+import '../../../main/presentation/screens/main_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -82,24 +83,12 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _buildLogo() {
     return Column(
       children: [
-        SizedBox(
-          height: 72,
-          child: Stack(
-            alignment: Alignment.center,
-            clipBehavior: Clip.none,
-            children: [
-              Icon(Icons.security_rounded, color: AppColors.primary, size: 68),
-              Positioned(
-                right: 80,
-                top: 10,
-                child: Icon(Icons.flight, color: AppColors.primary, size: 28),
-              ),
-            ],
-          ),
+        Image.asset(
+          'assets/images/logo_icon.png',
+          height: 80,
+          fit: BoxFit.contain,
         ),
-        const SizedBox(height: 18),
-        Text('IronLog', style: AppTextStyles.brandName),
-        const SizedBox(height: 6),
+        const SizedBox(height: 12),
         Text('FORGE YOUR LEGACY', style: AppTextStyles.tagline),
       ],
     );
@@ -242,6 +231,29 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(width: 20),
             Text('SUPPORT', style: AppTextStyles.footerLink),
           ],
+        ),
+        const SizedBox(height: 20),
+        GestureDetector(
+          onTap: () => Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const MainScreen()),
+          ),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              border: Border.all(color: AppColors.inputBorder),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.bug_report_outlined,
+                    color: AppColors.textSecondary, size: 14),
+                const SizedBox(width: 6),
+                Text('DEBUG — SKIP TO HOME', style: AppTextStyles.footerLink),
+              ],
+            ),
+          ),
         ),
       ],
     );

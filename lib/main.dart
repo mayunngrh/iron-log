@@ -3,11 +3,11 @@ import 'core/constants/app_colors.dart';
 import 'features/auth/presentation/screens/login_screen.dart';
 
 void main() {
-  runApp(const IronSanctumApp());
+  runApp(const IronLogApp());
 }
 
-class IronSanctumApp extends StatelessWidget {
-  const IronSanctumApp({super.key});
+class IronLogApp extends StatelessWidget {
+  const IronLogApp({super.key});
 
   @override
   Widget build(BuildContext context) {
