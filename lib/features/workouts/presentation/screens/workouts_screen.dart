@@ -4,6 +4,7 @@ import '../../../../core/constants/app_text_styles.dart';
 import '../../data/models/workout.dart';
 import '../../data/repositories/workout_repository.dart';
 import 'add_workout_screen.dart';
+import '../../../start/presentation/screens/workout_session_screen.dart';
 
 class WorkoutsScreen extends StatefulWidget {
   const WorkoutsScreen({super.key});
@@ -64,6 +65,13 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
   Future<void> _deleteWorkout(Workout workout) async {
     await _repo.deleteWorkout(workout.id!);
     _load();
+  }
+
+  void _startSession(Workout workout) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => WorkoutSessionScreen(workout: workout)),
+    );
   }
 
   @override
@@ -364,7 +372,7 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
                             padding: const EdgeInsets.symmetric(horizontal: 8),
                             child: CustomPaint(
                               painter: _DottedLinePainter(),
-                              size: Size.infinite,
+                              size: const Size(double.infinity, 1),
                             ),
                           ),
                         ),
@@ -382,7 +390,7 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
               width: double.infinity,
               height: 40,
               child: OutlinedButton(
-                onPressed: () {},
+                onPressed: () => _startSession(workout),
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(
                       color: AppColors.inputBorder, width: 1),
