@@ -8,8 +8,13 @@ class AuthRepository {
   AuthRepository({ApiClient? apiClient})
       : _apiClient = apiClient ?? ApiClient();
 
-  Future<Map<String, dynamic>> register(RegisterRequest request) async {
-    return _apiClient.post(Endpoints.register, request.toJson());
+  Future<SignUpResponse> signup(SignUpRequest request) async {
+    final response = await _apiClient.post(Endpoints.signup, request.toJson());
+    return SignUpResponse.fromJson(response);
+  }
+
+  Future<SignUpResponse> register(SignUpRequest request) async {
+    return signup(request);
   }
 
   Future<Map<String, dynamic>> login({

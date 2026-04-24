@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
-import '../../../../features/auth/data/models/register_request.dart';
+import '../../../../core/network/api_client.dart';
+import '../../../../features/auth/data/models/register_request.dart' show SignUpRequest;
 import '../../../../features/auth/data/repositories/auth_repository.dart';
+import '../../../../features/main/presentation/screens/main_screen.dart';
 import '../widgets/iron_button.dart';
 import '../widgets/iron_text_field.dart';
 
@@ -48,6 +50,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
+    if (_passwordController.text.length < 8) {
+      _showSnack('Password must be at least 8 characters');
+      return;
+    }
+
     if (_passwordController.text != _confirmPasswordController.text) {
       _showSnack('Passwords do not match');
       return;
@@ -55,28 +62,96 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     setState(() => _isLoading = true);
     try {
+      final email = _emailController.text.trim();
+      final password = _passwordController.text;
+
       await _repository.register(
-        RegisterRequest(
-          email: _emailController.text.trim(),
+        SignUpRequest(
+          email: email,
           firstName: _firstNameController.text.trim(),
           lastName: _lastNameController.text.trim(),
-          password: _passwordController.text,
+          password: password,
           username: _usernameController.text.trim(),
         ),
       );
-      if (mounted) Navigator.pop(context);
+
+      if (!mounted) return;
+
+      try {
+        await _repository.login(email: email, password: password);
+        if (mounted) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const MainScreen()),
+            (route) => false,
+          );
+        }
+      } catch (loginError) {
+        if (mounted) {
+          String errorMessage = 'Login failed after registration';
+          if (loginError is ApiException) {
+            final statusText = _getStatusCodeText(loginError.statusCode);
+            errorMessage = '$statusText : ${loginError.message}';
+          }
+          _showSnack(errorMessage);
+          if (mounted) Navigator.pop(context);
+        }
+      }
     } catch (e) {
-      _showSnack(e.toString());
+      String errorMessage = 'Registration failed';
+      if (e is ApiException) {
+        final statusText = _getStatusCodeText(e.statusCode);
+        errorMessage = '$statusText : ${e.message}';
+      }
+      if (mounted) {
+        _showSnack(errorMessage);
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  String _getStatusCodeText(int statusCode) {
+    switch (statusCode) {
+      case 400:
+        return 'Bad Request';
+      case 401:
+        return 'Unauthorized';
+      case 403:
+        return 'Forbidden';
+      case 404:
+        return 'Not Found';
+      case 409:
+        return 'Conflict';
+      case 422:
+        return 'Unprocessable Entity';
+      case 429:
+        return 'Too Many Requests';
+      case 500:
+        return 'Server Error';
+      case 502:
+        return 'Bad Gateway';
+      case 503:
+        return 'Service Unavailable';
+      default:
+        return 'Error';
     }
   }
 
   void _showSnack(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Text(
+          message,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
         backgroundColor: AppColors.cardBackground,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
   }
