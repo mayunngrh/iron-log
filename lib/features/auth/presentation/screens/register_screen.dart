@@ -78,7 +78,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (!mounted) return;
 
       try {
-        await _repository.login(email: email, password: password);
+        await _repository.login(identifier: email, password: password);
         if (mounted) {
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (_) => const MainScreen()),
@@ -87,10 +87,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
         }
       } catch (loginError) {
         if (mounted) {
-          String errorMessage = 'Login failed after registration';
+          String errorMessage = 'Auto-login failed after registration. Please login manually.';
           if (loginError is ApiException) {
             final statusText = _getStatusCodeText(loginError.statusCode);
-            errorMessage = '$statusText : ${loginError.message}';
+            errorMessage = 'Auto-login failed: $statusText : ${loginError.message}';
           }
           _showSnack(errorMessage);
           if (mounted) Navigator.pop(context);

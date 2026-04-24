@@ -10,7 +10,7 @@ class AuthRepository {
 
   Future<SignUpResponse> signup(SignUpRequest request) async {
     final response = await _apiClient.post(Endpoints.signup, request.toJson());
-    return SignUpResponse.fromJson(response);
+    return SignUpResponse.fromJson(response['data'] as Map<String, dynamic>);
   }
 
   Future<SignUpResponse> register(SignUpRequest request) async {
@@ -18,11 +18,11 @@ class AuthRepository {
   }
 
   Future<Map<String, dynamic>> login({
-    required String email,
+    required String identifier,
     required String password,
   }) async {
     return _apiClient.post(Endpoints.login, {
-      'email': email,
+      'identifier': identifier,
       'password': password,
     });
   }

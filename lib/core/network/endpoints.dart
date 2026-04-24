@@ -4,7 +4,7 @@ class Endpoints {
 
   // ── Auth Endpoints ────────────────────────────────────────────────────────
   static const String signup = '$baseUrl/$apiVersion/auth/signup';
-  static const String login = '$baseUrl/$apiVersion/auth/login';
+  static const String login = '$baseUrl/$apiVersion/auth/signin';
 
   // ── Exercises Endpoints ───────────────────────────────────────────────────
   static const String exercises = '$baseUrl/$apiVersion/exercises';

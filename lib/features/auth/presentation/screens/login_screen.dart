@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
+import '../../../../core/network/api_client.dart';
 import '../../../../features/auth/data/repositories/auth_repository.dart';
 import '../widgets/iron_button.dart';
 import '../widgets/iron_text_field.dart';
@@ -37,22 +38,71 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
     try {
       await _repository.login(
-        email: _emailController.text.trim(),
+        identifier: _emailController.text.trim(),
         password: _passwordController.text,
       );
-      // TODO: navigate to home screen on success
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const MainScreen()),
+          (route) => false,
+        );
+      }
     } catch (e) {
-      _showSnack(e.toString());
+      String errorMessage = 'Login failed';
+      if (e is ApiException) {
+        final statusText = _getStatusCodeText(e.statusCode);
+        errorMessage = '$statusText : ${e.message}';
+      }
+      if (mounted) {
+        _showSnack(errorMessage);
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  String _getStatusCodeText(int statusCode) {
+    switch (statusCode) {
+      case 400:
+        return 'Bad Request';
+      case 401:
+        return 'Unauthorized';
+      case 403:
+        return 'Forbidden';
+      case 404:
+        return 'Not Found';
+      case 409:
+        return 'Conflict';
+      case 422:
+        return 'Unprocessable Entity';
+      case 429:
+        return 'Too Many Requests';
+      case 500:
+        return 'Server Error';
+      case 502:
+        return 'Bad Gateway';
+      case 503:
+        return 'Service Unavailable';
+      default:
+        return 'Error';
     }
   }
 
   void _showSnack(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Text(
+          message,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
         backgroundColor: AppColors.cardBackground,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
   }
@@ -119,13 +169,13 @@ class _LoginScreenState extends State<LoginScreen> {
             ],
           ),
           const SizedBox(height: 24),
-          Text('ATHLETE EMAIL', style: AppTextStyles.label),
+          Text('EMAIL OR USERNAME', style: AppTextStyles.label),
           const SizedBox(height: 8),
           IronTextField(
             controller: _emailController,
-            hint: 'RANK_ONE@IRON.COM',
-            prefixIcon: Icons.alternate_email,
-            keyboardType: TextInputType.emailAddress,
+            hint: 'ENTER EMAIL OR USERNAME',
+            prefixIcon: Icons.person_rounded,
+            keyboardType: TextInputType.text,
           ),
           const SizedBox(height: 18),
           Row(
