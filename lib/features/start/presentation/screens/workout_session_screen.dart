@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../workouts/data/models/workout.dart';
+import '../../../history/data/models/session.dart';
+import '../../../history/data/repositories/session_repository.dart';
 
 enum SessionPhase {
   warmupCountdown,
@@ -135,11 +137,75 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
     });
   }
 
-  void _completeSession() {
+  void _completeSession() async {
     setState(() {
       _phase = SessionPhase.completed;
     });
     _masterTimer?.cancel();
+
+    await _saveSessionToDatabase();
+  }
+
+  Future<void> _saveSessionToDatabase() async {
+    try {
+      final sessionRepository = SessionRepository();
+
+      double totalWeightLifted = 0;
+      int totalSetsCompleted = 0;
+      final sessionExercises = <SessionExercise>[];
+
+      for (int i = 0; i < _workout.exercises.length; i++) {
+        final workoutExercise = _workout.exercises[i];
+        double maxWeightInExercise = 0;
+        int exerciseSetsCompleted = 0;
+
+        for (int j = 0; j < workoutExercise.sets.length; j++) {
+          if (_completedSets[i][j]) {
+            final set = workoutExercise.sets[j];
+            final setWeight = set.weight * set.reps;
+            totalWeightLifted += setWeight;
+            maxWeightInExercise = maxWeightInExercise > set.weight
+                ? maxWeightInExercise
+                : set.weight;
+            exerciseSetsCompleted++;
+          }
+        }
+
+        totalSetsCompleted += exerciseSetsCompleted;
+
+        if (exerciseSetsCompleted > 0) {
+          sessionExercises.add(
+            SessionExercise(
+              sessionId: 0,
+              exerciseName: workoutExercise.exercise.name,
+              setsCompleted: exerciseSetsCompleted,
+              totalWeight: totalWeightLifted,
+              maxWeightInSet: maxWeightInExercise,
+            ),
+          );
+        }
+      }
+
+      final expGained = totalWeightLifted.toInt();
+
+      final session = Session(
+        workoutId: _workout.id!,
+        workoutName: _workout.name,
+        date: DateTime.now(),
+        durationSeconds: _elapsedSessionSeconds,
+        totalWeightLifted: totalWeightLifted,
+        totalSetsCompleted: totalSetsCompleted,
+        expGained: expGained,
+        exercises: sessionExercises,
+      );
+
+      await sessionRepository.saveSession(session);
+
+      // Note: Update user stats when user data is available (from login)
+      // await userStatsRepository.addExp(username, expGained);
+    } catch (e) {
+      debugPrint('Error saving session: $e');
+    }
   }
 
   void _cancelSession() {

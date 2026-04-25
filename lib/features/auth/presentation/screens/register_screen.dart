@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/network/api_client.dart';
+import '../../../../core/repositories/user_stats_repository.dart';
 import '../../../../features/auth/data/models/register_request.dart' show SignUpRequest;
 import '../../../../features/auth/data/repositories/auth_repository.dart';
 import '../../../../features/main/presentation/screens/main_screen.dart';
@@ -23,6 +24,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _repository = AuthRepository();
+  final _userStatsRepository = UserStatsRepository();
 
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
@@ -64,18 +66,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
     try {
       final email = _emailController.text.trim();
       final password = _passwordController.text;
+      final firstName = _firstNameController.text.trim();
+      final lastName = _lastNameController.text.trim();
+      final username = _usernameController.text.trim();
 
       await _repository.register(
         SignUpRequest(
           email: email,
-          firstName: _firstNameController.text.trim(),
-          lastName: _lastNameController.text.trim(),
+          firstName: firstName,
+          lastName: lastName,
           password: password,
-          username: _usernameController.text.trim(),
+          username: username,
         ),
       );
 
       if (!mounted) return;
+
+      await _userStatsRepository.createUserStats(
+        username: username,
+        firstName: firstName,
+        lastName: lastName,
+      );
 
       try {
         await _repository.login(identifier: email, password: password);

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/network/api_client.dart';
+import '../../../../core/repositories/user_stats_repository.dart';
 import '../../../../features/auth/data/repositories/auth_repository.dart';
 import '../widgets/iron_button.dart';
 import '../widgets/iron_text_field.dart';
@@ -19,6 +21,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _repository = AuthRepository();
+  final _userStatsRepository = UserStatsRepository();
   bool _obscurePassword = true;
   bool _isLoading = false;
 
@@ -37,10 +40,27 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
     try {
+      final identifier = _emailController.text.trim();
+
       await _repository.login(
-        identifier: _emailController.text.trim(),
+        identifier: identifier,
         password: _passwordController.text,
       );
+
+      // Store username for later use
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('current_username', identifier);
+
+      // Create/update user stats locally with hardcoded name for now
+      final existingStats = await _userStatsRepository.getUserStats(identifier);
+      if (existingStats == null) {
+        await _userStatsRepository.createUserStats(
+          username: identifier,
+          firstName: 'Mayun',
+          lastName: 'Suryatama',
+        );
+      }
+
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const MainScreen()),

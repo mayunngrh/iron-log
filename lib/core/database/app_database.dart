@@ -17,7 +17,7 @@ class AppDatabase {
     final path = join(await getDatabasesPath(), 'ironlog.db');
     return openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -68,6 +68,44 @@ class AppDatabase {
       )
     ''');
 
+    await db.execute('''
+      CREATE TABLE user_stats (
+        id        INTEGER PRIMARY KEY AUTOINCREMENT,
+        username  TEXT    NOT NULL UNIQUE,
+        firstName TEXT    NOT NULL,
+        lastName  TEXT    NOT NULL,
+        level     INTEGER NOT NULL DEFAULT 1,
+        totalExp  INTEGER NOT NULL DEFAULT 0,
+        createdAt TEXT    NOT NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE sessions (
+        id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+        workoutId           INTEGER NOT NULL,
+        workoutName         TEXT    NOT NULL,
+        date                TEXT    NOT NULL,
+        durationSeconds     INTEGER NOT NULL,
+        totalWeightLifted   REAL    NOT NULL,
+        totalSetsCompleted  INTEGER NOT NULL,
+        expGained           INTEGER NOT NULL DEFAULT 0,
+        FOREIGN KEY (workoutId) REFERENCES workouts(id)
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE session_exercises (
+        id               INTEGER PRIMARY KEY AUTOINCREMENT,
+        sessionId        INTEGER NOT NULL,
+        exerciseName     TEXT    NOT NULL,
+        setsCompleted    INTEGER NOT NULL,
+        totalWeight      REAL    NOT NULL,
+        maxWeightInSet   REAL    NOT NULL,
+        FOREIGN KEY (sessionId) REFERENCES sessions(id) ON DELETE CASCADE
+      )
+    ''');
+
     final batch = db.batch();
     for (final e in ExerciseSeeds.all) {
       batch.insert('exercises', e);
@@ -85,6 +123,45 @@ class AppDatabase {
           reps              INTEGER NOT NULL DEFAULT 0,
           weight            REAL    NOT NULL DEFAULT 0.0,
           FOREIGN KEY (workoutExerciseId) REFERENCES workout_exercises(id) ON DELETE CASCADE
+        )
+      ''');
+    }
+    if (oldVersion < 3) {
+      await db.execute('''
+        CREATE TABLE user_stats (
+          id        INTEGER PRIMARY KEY AUTOINCREMENT,
+          username  TEXT    NOT NULL UNIQUE,
+          firstName TEXT    NOT NULL,
+          lastName  TEXT    NOT NULL,
+          level     INTEGER NOT NULL DEFAULT 1,
+          totalExp  INTEGER NOT NULL DEFAULT 0,
+          createdAt TEXT    NOT NULL
+        )
+      ''');
+
+      await db.execute('''
+        CREATE TABLE sessions (
+          id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+          workoutId           INTEGER NOT NULL,
+          workoutName         TEXT    NOT NULL,
+          date                TEXT    NOT NULL,
+          durationSeconds     INTEGER NOT NULL,
+          totalWeightLifted   REAL    NOT NULL,
+          totalSetsCompleted  INTEGER NOT NULL,
+          expGained           INTEGER NOT NULL DEFAULT 0,
+          FOREIGN KEY (workoutId) REFERENCES workouts(id)
+        )
+      ''');
+
+      await db.execute('''
+        CREATE TABLE session_exercises (
+          id               INTEGER PRIMARY KEY AUTOINCREMENT,
+          sessionId        INTEGER NOT NULL,
+          exerciseName     TEXT    NOT NULL,
+          setsCompleted    INTEGER NOT NULL,
+          totalWeight      REAL    NOT NULL,
+          maxWeightInSet   REAL    NOT NULL,
+          FOREIGN KEY (sessionId) REFERENCES sessions(id) ON DELETE CASCADE
         )
       ''');
     }
