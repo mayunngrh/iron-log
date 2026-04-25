@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
+import '../../../../core/models/user_stats.dart';
+import '../../../../core/repositories/user_stats_repository.dart';
 import '../../../workouts/data/models/workout.dart';
 import '../../../history/data/models/session.dart';
 import '../../../history/data/repositories/session_repository.dart';
@@ -49,6 +52,12 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
   static const int _warmupRestSeconds = 30;
   static const int _regularRestSeconds = 90;
   static const int _nudgeThresholdSeconds = 90;
+
+  // EXP tracking for end-of-session animation
+  UserStats? _oldStats;
+  UserStats? _newStats;
+  int _expGainedThisSession = 0;
+  bool _leveledUp = false;
 
   @override
   void initState() {
@@ -149,6 +158,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
   Future<void> _saveSessionToDatabase() async {
     try {
       final sessionRepository = SessionRepository();
+      final userStatsRepository = UserStatsRepository();
 
       double totalWeightLifted = 0;
       int totalSetsCompleted = 0;
@@ -156,6 +166,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
 
       for (int i = 0; i < _workout.exercises.length; i++) {
         final workoutExercise = _workout.exercises[i];
+        double exerciseTotalWeight = 0;
         double maxWeightInExercise = 0;
         int exerciseSetsCompleted = 0;
 
@@ -163,6 +174,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
           if (_completedSets[i][j]) {
             final set = workoutExercise.sets[j];
             final setWeight = set.weight * set.reps;
+            exerciseTotalWeight += setWeight;
             totalWeightLifted += setWeight;
             maxWeightInExercise = maxWeightInExercise > set.weight
                 ? maxWeightInExercise
@@ -179,7 +191,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
               sessionId: 0,
               exerciseName: workoutExercise.exercise.name,
               setsCompleted: exerciseSetsCompleted,
-              totalWeight: totalWeightLifted,
+              totalWeight: exerciseTotalWeight,
               maxWeightInSet: maxWeightInExercise,
             ),
           );
@@ -201,8 +213,24 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
 
       await sessionRepository.saveSession(session);
 
-      // Note: Update user stats when user data is available (from login)
-      // await userStatsRepository.addExp(username, expGained);
+      // Update user EXP and level
+      final prefs = await SharedPreferences.getInstance();
+      final username = prefs.getString('current_username');
+      if (username != null && expGained > 0) {
+        final oldStats = await userStatsRepository.getUserStats(username);
+        await userStatsRepository.addExp(username, expGained);
+        final newStats = await userStatsRepository.getUserStats(username);
+
+        if (mounted) {
+          setState(() {
+            _oldStats = oldStats;
+            _newStats = newStats;
+            _expGainedThisSession = expGained;
+            _leveledUp = (oldStats?.level ?? 0) < (newStats?.level ?? 0);
+          });
+        }
+        debugPrint('Added $expGained EXP to user $username');
+      }
     } catch (e) {
       debugPrint('Error saving session: $e');
     }
@@ -928,7 +956,9 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
           const SizedBox(height: 8),
           Text('IRON NEVER FORGETS YOUR EFFORT',
               style: AppTextStyles.label.copyWith(fontSize: 10)),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
+          if (_newStats != null) _buildExpProgressCard(),
+          const SizedBox(height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
@@ -952,6 +982,188 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
               ),
               child: Text('BACK TO LIBRARY', style: AppTextStyles.buttonText),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExpProgressCard() {
+    final oldStats = _oldStats;
+    final newStats = _newStats!;
+
+    final oldExp = oldStats?.totalExp ?? 0;
+    final newExp = newStats.totalExp;
+    final newLevel = newStats.level;
+
+    final levelExpStart = newStats.getExpForLevel(newLevel);
+    final levelExpEnd = newStats.getExpForLevel(newLevel + 1);
+    final levelExpRange = levelExpEnd - levelExpStart;
+
+    // Progress within current level (0.0 to 1.0)
+    final newProgress = levelExpRange > 0
+        ? ((newExp - levelExpStart) / levelExpRange).clamp(0.0, 1.0)
+        : 0.0;
+
+    // Calculate starting progress for animation
+    double startProgress;
+    if (_leveledUp) {
+      startProgress = 0.0; // Bar resets to 0 after level up
+    } else {
+      startProgress = levelExpRange > 0
+          ? ((oldExp - levelExpStart) / levelExpRange).clamp(0.0, 1.0)
+          : 0.0;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: AppColors.primary.withValues(alpha: 0.4),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.15),
+            blurRadius: 16,
+            spreadRadius: 1,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // EXP gained animated counter
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              const Icon(Icons.bolt_rounded,
+                  color: AppColors.primary, size: 28),
+              const SizedBox(width: 6),
+              TweenAnimationBuilder<int>(
+                tween: IntTween(begin: 0, end: _expGainedThisSession),
+                duration: const Duration(milliseconds: 1500),
+                curve: Curves.easeOutCubic,
+                builder: (context, value, _) => Text(
+                  '+$value',
+                  style: TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.primary,
+                    fontFamily: GoogleFonts.oswald().fontFamily,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Text('EXP',
+                    style: AppTextStyles.label
+                        .copyWith(color: AppColors.primary, fontSize: 14)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          if (_leveledUp)
+            Center(
+              child: TweenAnimationBuilder<double>(
+                tween: Tween<double>(begin: 0.0, end: 1.0),
+                duration: const Duration(milliseconds: 800),
+                curve: Curves.elasticOut,
+                builder: (context, scale, _) => Transform.scale(
+                  scale: scale,
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 4),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '🎉 LEVEL UP! ${oldStats?.level ?? 0} → $newLevel',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          const SizedBox(height: 20),
+          // Level + progress
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('LEVEL $newLevel',
+                  style: AppTextStyles.label.copyWith(
+                    fontSize: 12,
+                    color: AppColors.textPrimary,
+                  )),
+              TweenAnimationBuilder<int>(
+                tween: IntTween(begin: oldExp, end: newExp),
+                duration: const Duration(milliseconds: 1500),
+                curve: Curves.easeOutCubic,
+                builder: (context, value, _) => Text(
+                  '$value / $levelExpEnd EXP',
+                  style: AppTextStyles.label
+                      .copyWith(fontSize: 11, color: AppColors.primary),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Animated progress bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: TweenAnimationBuilder<double>(
+              tween: Tween<double>(begin: startProgress, end: newProgress),
+              duration: Duration(
+                milliseconds: _leveledUp ? 2000 : 1500,
+              ),
+              curve: Curves.easeOutCubic,
+              builder: (context, value, _) => Stack(
+                children: [
+                  Container(
+                    height: 12,
+                    color: AppColors.inputBorder,
+                  ),
+                  FractionallySizedBox(
+                    widthFactor: value,
+                    child: Container(
+                      height: 12,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [
+                            AppColors.primary,
+                            Color(0xFFFF5252),
+                          ],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.6),
+                            blurRadius: 6,
+                            spreadRadius: 0,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'TOTAL EXP: $newExp',
+            style: AppTextStyles.label.copyWith(fontSize: 10),
           ),
         ],
       ),
