@@ -157,4 +157,63 @@ class SessionRepository {
     if (result.isEmpty || result.first['pr'] == null) return null;
     return (result.first['pr'] as num).toDouble();
   }
+
+  Future<List<Session>> getSessionsByDateRange(
+    DateTime start,
+    DateTime end,
+  ) async {
+    final database = await _db.database;
+
+    final result = await database.query(
+      'sessions',
+      where: 'date >= ? AND date <= ?',
+      whereArgs: [start.toIso8601String(), end.toIso8601String()],
+      orderBy: 'date ASC',
+    );
+
+    final sessions = <Session>[];
+    for (final sessionMap in result) {
+      final sessionId = sessionMap['id'] as int;
+      final exercisesResult = await database.query(
+        'session_exercises',
+        where: 'sessionId = ?',
+        whereArgs: [sessionId],
+      );
+
+      final exercises =
+          exercisesResult.map((e) => SessionExercise.fromMap(e)).toList();
+
+      sessions.add(Session.fromMap(sessionMap, exercises));
+    }
+
+    return sessions;
+  }
+
+  Future<Map<String, dynamic>> getSummaryForDateRange(
+    DateTime start,
+    DateTime end,
+  ) async {
+    final sessions = await getSessionsByDateRange(start, end);
+
+    int totalSessions = sessions.length;
+    double totalVolume = 0;
+    int totalReps = 0;
+    int totalSets = 0;
+
+    for (final session in sessions) {
+      totalVolume += session.totalWeightLifted;
+      totalSets += session.totalSetsCompleted;
+      for (final ex in session.exercises) {
+        totalReps += ex.totalReps;
+      }
+    }
+
+    return {
+      'totalSessions': totalSessions,
+      'totalVolume': totalVolume,
+      'totalReps': totalReps,
+      'totalSets': totalSets,
+      'sessions': sessions,
+    };
+  }
 }

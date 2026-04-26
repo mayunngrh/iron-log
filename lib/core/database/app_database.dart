@@ -17,7 +17,7 @@ class AppDatabase {
     final path = join(await getDatabasesPath(), 'ironlog.db');
     return openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -100,6 +100,7 @@ class AppDatabase {
         sessionId        INTEGER NOT NULL,
         exerciseName     TEXT    NOT NULL,
         setsCompleted    INTEGER NOT NULL,
+        totalReps        INTEGER NOT NULL DEFAULT 0,
         totalWeight      REAL    NOT NULL,
         maxWeightInSet   REAL    NOT NULL,
         FOREIGN KEY (sessionId) REFERENCES sessions(id) ON DELETE CASCADE
@@ -159,11 +160,17 @@ class AppDatabase {
           sessionId        INTEGER NOT NULL,
           exerciseName     TEXT    NOT NULL,
           setsCompleted    INTEGER NOT NULL,
+          totalReps        INTEGER NOT NULL DEFAULT 0,
           totalWeight      REAL    NOT NULL,
           maxWeightInSet   REAL    NOT NULL,
           FOREIGN KEY (sessionId) REFERENCES sessions(id) ON DELETE CASCADE
         )
       ''');
+    }
+    if (oldVersion < 4) {
+      await db.execute(
+        'ALTER TABLE session_exercises ADD COLUMN totalReps INTEGER NOT NULL DEFAULT 0',
+      );
     }
   }
 }

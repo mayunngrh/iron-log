@@ -3,6 +3,7 @@ class SessionExercise {
   final int sessionId;
   final String exerciseName;
   final int setsCompleted;
+  final int totalReps;
   final double totalWeight;
   final double maxWeightInSet;
 
@@ -11,6 +12,7 @@ class SessionExercise {
     required this.sessionId,
     required this.exerciseName,
     required this.setsCompleted,
+    this.totalReps = 0,
     required this.totalWeight,
     required this.maxWeightInSet,
   });
@@ -20,6 +22,7 @@ class SessionExercise {
         sessionId: map['sessionId'] as int,
         exerciseName: map['exerciseName'] as String,
         setsCompleted: map['setsCompleted'] as int,
+        totalReps: map['totalReps'] as int? ?? 0,
         totalWeight: (map['totalWeight'] as num).toDouble(),
         maxWeightInSet: (map['maxWeightInSet'] as num).toDouble(),
       );
@@ -29,6 +32,7 @@ class SessionExercise {
         'sessionId': sessionId,
         'exerciseName': exerciseName,
         'setsCompleted': setsCompleted,
+        'totalReps': totalReps,
         'totalWeight': totalWeight,
         'maxWeightInSet': maxWeightInSet,
       };

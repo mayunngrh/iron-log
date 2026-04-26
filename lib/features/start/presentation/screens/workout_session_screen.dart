@@ -169,6 +169,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
         double exerciseTotalWeight = 0;
         double maxWeightInExercise = 0;
         int exerciseSetsCompleted = 0;
+        int exerciseTotalReps = 0;
 
         for (int j = 0; j < workoutExercise.sets.length; j++) {
           if (_completedSets[i][j]) {
@@ -180,6 +181,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
                 ? maxWeightInExercise
                 : set.weight;
             exerciseSetsCompleted++;
+            exerciseTotalReps += set.reps;
           }
         }
 
@@ -191,6 +193,7 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
               sessionId: 0,
               exerciseName: workoutExercise.exercise.name,
               setsCompleted: exerciseSetsCompleted,
+              totalReps: exerciseTotalReps,
               totalWeight: exerciseTotalWeight,
               maxWeightInSet: maxWeightInExercise,
             ),
