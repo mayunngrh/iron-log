@@ -62,4 +62,38 @@ class ExerciseSeeds {
     {'name': 'YOGA FLOW', 'category': 'RECOVERY', 'muscleGroup': 'Full Body', 'type': 'RECOVERY'},
     {'name': 'MOBILITY DRILLS', 'category': 'RECOVERY', 'muscleGroup': 'Full Body', 'type': 'RECOVERY'},
   ];
+
+  static const List<Map<String, String>> bodyweightExercises = [
+    // ── Bodyweight Chest ────────────────────────────────────────────────────
+    {'name': 'DIAMOND PUSH UP', 'category': 'BODYWEIGHT', 'muscleGroup': 'Chest', 'type': 'COMPOUND'},
+    {'name': 'WIDE GRIP PUSH UP', 'category': 'BODYWEIGHT', 'muscleGroup': 'Chest', 'type': 'COMPOUND'},
+    {'name': 'ARCHER PUSH UP', 'category': 'BODYWEIGHT', 'muscleGroup': 'Chest', 'type': 'COMPOUND'},
+    // ── Bodyweight Back ─────────────────────────────────────────────────────
+    {'name': 'CHIN UP', 'category': 'BODYWEIGHT', 'muscleGroup': 'Back', 'type': 'COMPOUND'},
+    {'name': 'WIDE GRIP PULL UP', 'category': 'BODYWEIGHT', 'muscleGroup': 'Back', 'type': 'COMPOUND'},
+    // ── Bodyweight Legs ─────────────────────────────────────────────────────
+    {'name': 'BODYWEIGHT SQUAT', 'category': 'BODYWEIGHT', 'muscleGroup': 'Legs', 'type': 'COMPOUND'},
+    {'name': 'JUMP SQUAT', 'category': 'BODYWEIGHT', 'muscleGroup': 'Legs', 'type': 'COMPOUND'},
+    {'name': 'LUNGES', 'category': 'BODYWEIGHT', 'muscleGroup': 'Legs', 'type': 'COMPOUND'},
+    {'name': 'JUMP LUNGES', 'category': 'BODYWEIGHT', 'muscleGroup': 'Legs', 'type': 'COMPOUND'},
+    {'name': 'GLUTE BRIDGE', 'category': 'BODYWEIGHT', 'muscleGroup': 'Legs', 'type': 'COMPOUND'},
+    {'name': 'SINGLE LEG DEADLIFT', 'category': 'BODYWEIGHT', 'muscleGroup': 'Legs', 'type': 'COMPOUND'},
+    {'name': 'PISTOL SQUAT', 'category': 'BODYWEIGHT', 'muscleGroup': 'Legs', 'type': 'COMPOUND'},
+    // ── Bodyweight Shoulders ────────────────────────────────────────────────
+    {'name': 'PIKE PUSH UP', 'category': 'BODYWEIGHT', 'muscleGroup': 'Shoulders', 'type': 'COMPOUND'},
+    {'name': 'HANDSTAND PUSH UP', 'category': 'BODYWEIGHT', 'muscleGroup': 'Shoulders', 'type': 'COMPOUND'},
+    // ── Bodyweight Arms ─────────────────────────────────────────────────────
+    {'name': 'DIPS', 'category': 'BODYWEIGHT', 'muscleGroup': 'Arms', 'type': 'COMPOUND'},
+    {'name': 'BENCH DIPS', 'category': 'BODYWEIGHT', 'muscleGroup': 'Arms', 'type': 'COMPOUND'},
+    // ── Bodyweight Core ─────────────────────────────────────────────────────
+    {'name': 'SIDE PLANK', 'category': 'BODYWEIGHT', 'muscleGroup': 'Core', 'type': 'ISOLATION'},
+    {'name': 'HOLLOW BODY HOLD', 'category': 'BODYWEIGHT', 'muscleGroup': 'Core', 'type': 'ISOLATION'},
+    {'name': 'L-SIT', 'category': 'BODYWEIGHT', 'muscleGroup': 'Core', 'type': 'ISOLATION'},
+    {'name': 'DEAD BUG', 'category': 'BODYWEIGHT', 'muscleGroup': 'Core', 'type': 'ISOLATION'},
+    // ── Bodyweight Full Body ────────────────────────────────────────────────
+    {'name': 'BURPEE (BODYWEIGHT)', 'category': 'BODYWEIGHT', 'muscleGroup': 'Full Body', 'type': 'COMPOUND'},
+    {'name': 'MOUNTAIN CLIMBER (BODYWEIGHT)', 'category': 'BODYWEIGHT', 'muscleGroup': 'Core', 'type': 'COMPOUND'},
+    {'name': 'BEAR CRAWL', 'category': 'BODYWEIGHT', 'muscleGroup': 'Full Body', 'type': 'COMPOUND'},
+    {'name': 'JUMPING JACKS', 'category': 'BODYWEIGHT', 'muscleGroup': 'Full Body', 'type': 'COMPOUND'},
+  ];
 }

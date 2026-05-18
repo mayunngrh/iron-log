@@ -3,9 +3,9 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../home/presentation/screens/home_screen.dart';
 import '../../../workouts/presentation/screens/workouts_screen.dart';
-import '../../../start/presentation/screens/start_screen.dart';
+import '../../../community/presentation/screens/community_screen.dart';
 import '../../../history/presentation/screens/history_screen.dart';
-import '../../../settings/presentation/screens/settings_screen.dart';
+import '../../../profile/presentation/screens/profile_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -19,10 +19,10 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _screens = const [
     HomeScreen(),
+    CommunityScreen(),
     WorkoutsScreen(),
-    StartScreen(),
     HistoryScreen(),
-    SettingsScreen(),
+    ProfileScreen(),
   ];
 
   @override
@@ -49,14 +49,17 @@ class _MainScreenState extends State<MainScreen> {
             children: [
               _navItem(icon: Icons.home_rounded, label: 'HOME', index: 0),
               _navItem(
+                  icon: Icons.people_alt_rounded,
+                  label: 'COMMUNITY',
+                  index: 1),
+              _navItemCenter(
                   icon: Icons.fitness_center_rounded,
                   label: 'WORKOUTS',
-                  index: 1),
-              _navItemCenter(index: 2),
+                  index: 2),
               _navItem(
                   icon: Icons.history_rounded, label: 'HISTORY', index: 3),
               _navItem(
-                  icon: Icons.settings_outlined, label: 'SETTINGS', index: 4),
+                  icon: Icons.person_rounded, label: 'PROFILE', index: 4),
             ],
           ),
         ),
@@ -96,7 +99,11 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  Widget _navItemCenter({required int index}) {
+  Widget _navItemCenter({
+    required IconData icon,
+    required String label,
+    required int index,
+  }) {
     final isActive = _currentIndex == index;
     return Expanded(
       child: GestureDetector(
@@ -116,14 +123,14 @@ class _MainScreenState extends State<MainScreen> {
                 ),
               ),
               child: Icon(
-                Icons.add_rounded,
+                icon,
                 size: 22,
                 color: isActive ? AppColors.primary : AppColors.textSecondary,
               ),
             ),
             const SizedBox(height: 3),
             Text(
-              'START',
+              label,
               style: AppTextStyles.label.copyWith(
                 fontSize: 9,
                 color: isActive ? AppColors.primary : AppColors.textSecondary,

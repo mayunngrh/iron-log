@@ -17,7 +17,7 @@ class AppDatabase {
     final path = join(await getDatabasesPath(), 'ironlog.db');
     return openDatabase(
       path,
-      version: 4,
+      version: 5,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -111,6 +111,9 @@ class AppDatabase {
     for (final e in ExerciseSeeds.all) {
       batch.insert('exercises', e);
     }
+    for (final e in ExerciseSeeds.bodyweightExercises) {
+      batch.insert('exercises', e);
+    }
     await batch.commit(noResult: true);
   }
 
@@ -171,6 +174,32 @@ class AppDatabase {
       await db.execute(
         'ALTER TABLE session_exercises ADD COLUMN totalReps INTEGER NOT NULL DEFAULT 0',
       );
+    }
+    if (oldVersion < 5) {
+      await db.execute(
+        'ALTER TABLE user_stats ADD COLUMN height REAL',
+      );
+      await db.execute(
+        'ALTER TABLE user_stats ADD COLUMN weight REAL',
+      );
+      await db.execute(
+        'ALTER TABLE user_stats ADD COLUMN age INTEGER',
+      );
+      await db.execute(
+        'ALTER TABLE user_stats ADD COLUMN gender TEXT',
+      );
+      await db.execute(
+        'ALTER TABLE user_stats ADD COLUMN bodyFatPercentage REAL',
+      );
+      await db.execute(
+        'ALTER TABLE user_stats ADD COLUMN fitnessGoal TEXT',
+      );
+
+      final batch = db.batch();
+      for (final e in ExerciseSeeds.bodyweightExercises) {
+        batch.insert('exercises', e);
+      }
+      await batch.commit(noResult: true);
     }
   }
 }
