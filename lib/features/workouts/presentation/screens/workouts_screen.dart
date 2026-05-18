@@ -81,7 +81,6 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            _buildAppBar(),
             Expanded(
               child: _loading
                   ? const Center(
@@ -113,38 +112,6 @@ class _WorkoutsScreenState extends State<WorkoutsScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  // ── App Bar ───────────────────────────────────────────────────────────────
-
-  Widget _buildAppBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      child: Row(
-        children: [
-          IconButton(
-            icon: const Icon(Icons.menu_rounded,
-                color: AppColors.textSecondary, size: 26),
-            onPressed: () {},
-          ),
-          const Spacer(),
-          Text('IRON SANCTUM', style: AppTextStyles.screenTitle),
-          const Spacer(),
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.inputBorder),
-            ),
-            child: const Icon(Icons.person_rounded,
-                color: AppColors.textSecondary, size: 20),
-          ),
-          const SizedBox(width: 8),
-        ],
       ),
     );
   }

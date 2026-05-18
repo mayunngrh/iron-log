@@ -147,6 +147,7 @@ class UserStats {
   final Gender? gender;
   final double? bodyFatPercentage;
   final FitnessGoal? fitnessGoal;
+  final String? profilePhotoPath;
 
   const UserStats({
     this.id,
@@ -162,6 +163,7 @@ class UserStats {
     this.gender,
     this.bodyFatPercentage,
     this.fitnessGoal,
+    this.profilePhotoPath,
   });
 
   int getExpForLevel(int targetLevel) {
@@ -218,6 +220,7 @@ class UserStats {
         gender: GenderExtension.fromString(map['gender'] as String?),
         bodyFatPercentage: (map['bodyFatPercentage'] as num?)?.toDouble(),
         fitnessGoal: FitnessGoalExtension.fromString(map['fitnessGoal'] as String?),
+        profilePhotoPath: map['profilePhotoPath'] as String?,
       );
 
   Map<String, dynamic> toMap() => {
@@ -234,5 +237,6 @@ class UserStats {
         if (gender != null) 'gender': gender?.value,
         if (bodyFatPercentage != null) 'bodyFatPercentage': bodyFatPercentage,
         if (fitnessGoal != null) 'fitnessGoal': fitnessGoal?.value,
+        if (profilePhotoPath != null) 'profilePhotoPath': profilePhotoPath,
       };
 }

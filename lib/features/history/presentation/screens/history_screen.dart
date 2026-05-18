@@ -191,44 +191,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget _buildHeader() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      child: Row(
-        children: [
-          IconButton(
-            icon: const Icon(Icons.menu_rounded,
-                color: AppColors.textSecondary, size: 26),
-            onPressed: () {},
-          ),
-          const SizedBox(width: 4),
-          Text('HISTORY',
-              style: AppTextStyles.screenTitle
-                  .copyWith(color: AppColors.primary)),
-          const Spacer(),
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.inputBorder),
-            ),
-            child: const Icon(Icons.shield_outlined,
-                color: AppColors.primary, size: 20),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.inputBorder),
-            ),
-            child: const Icon(Icons.person_rounded,
-                color: AppColors.textSecondary, size: 20),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
+      child: Text('HISTORY',
+          style: AppTextStyles.screenTitle
+              .copyWith(color: AppColors.primary)),
     );
   }
 

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/models/user_stats.dart';
@@ -83,6 +85,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Future<void> _pickProfilePhoto() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null && _userStats != null) {
+      final updatedStats = UserStats(
+        id: _userStats!.id,
+        username: _userStats!.username,
+        firstName: _userStats!.firstName,
+        lastName: _userStats!.lastName,
+        level: _userStats!.level,
+        totalExp: _userStats!.totalExp,
+        createdAt: _userStats!.createdAt,
+        height: _userStats!.height,
+        weight: _userStats!.weight,
+        age: _userStats!.age,
+        gender: _userStats!.gender,
+        bodyFatPercentage: _userStats!.bodyFatPercentage,
+        fitnessGoal: _userStats!.fitnessGoal,
+        profilePhotoPath: pickedFile.path,
+      );
+
+      await _userStatsRepository.updateUserStats(updatedStats);
+      setState(() => _userStats = updatedStats);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -101,8 +130,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              _buildProfileHeader(),
-              const SizedBox(height: 24),
               _buildBodyMetricsCard(),
               const SizedBox(height: 24),
               _buildStatsCard(),
@@ -110,98 +137,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildProfileHeader() {
-    final rankColor = _getRankColor(_userStats?.getRank() ?? Rank.bronze);
-    final rankLabel = _userStats?.getRank().label ?? 'BRONZE';
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.inputBorder, width: 0.5),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: AppColors.cardBackground,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.inputBorder, width: 1.5),
-                ),
-                child: const Icon(Icons.person_rounded,
-                    color: AppColors.textSecondary, size: 28),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${_userStats?.firstName} ${_userStats?.lastName}'
-                          .toUpperCase(),
-                      style: AppTextStyles.sectionTitle,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '$rankLabel • LVL ${_userStats?.level}',
-                      style: AppTextStyles.label.copyWith(color: rankColor),
-                    ),
-                  ],
-                ),
-              ),
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  Icon(Icons.security_rounded, color: rankColor, size: 32),
-                  const Icon(Icons.bolt, color: Colors.white, size: 14),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          _buildExpProgressBar(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildExpProgressBar() {
-    final expProgress = _userStats?.getExpProgress() ?? 0;
-    final expNeeded = _userStats?.getExpNeededForNextLevel() ?? 1;
-    final progressPercent = expNeeded > 0 ? expProgress / expNeeded : 0.0;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('LEVEL ${_userStats?.level} PROGRESS',
-                style: AppTextStyles.label),
-            Text('$expProgress / $expNeeded EXP',
-                style:
-                    AppTextStyles.label.copyWith(color: AppColors.primary)),
-          ],
-        ),
-        const SizedBox(height: 8),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: progressPercent.clamp(0.0, 1.0),
-            minHeight: 6,
-            backgroundColor: AppColors.inputBorder,
-            valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
-          ),
-        ),
-      ],
     );
   }
 
@@ -220,15 +155,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('BODY METRICS', style: AppTextStyles.sectionTitle),
-              IconButton(
-                onPressed: _showEditMetricsSheet,
-                icon:
-                    const Icon(Icons.edit_outlined, color: AppColors.primary),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: _pickProfilePhoto,
+                    icon:
+                        const Icon(Icons.photo_outlined, color: AppColors.primary),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  IconButton(
+                    onPressed: _showEditMetricsSheet,
+                    icon:
+                        const Icon(Icons.edit_outlined, color: AppColors.primary),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
               ),
             ],
           ),
+          if (_userStats?.profilePhotoPath != null)
+            Column(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.file(
+                    File(_userStats!.profilePhotoPath!),
+                    width: 120,
+                    height: 120,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+            ),
           const SizedBox(height: 12),
           if (_userStats?.height != null || _userStats?.weight != null)
             Column(
@@ -366,21 +327,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Color _getRankColor(Rank rank) {
-    switch (rank) {
-      case Rank.bronze:
-        return const Color(0xFFCD7F32);
-      case Rank.silver:
-        return const Color(0xFFC0C0C0);
-      case Rank.gold:
-        return const Color(0xFFFFD700);
-      case Rank.platinum:
-        return const Color(0xFFE5E4E2);
-      case Rank.mythical:
-        return AppColors.primary;
-    }
-  }
-
   Color _getBmiColor(String? category) {
     if (category == null) return AppColors.textSecondary;
     switch (category) {
@@ -409,10 +355,14 @@ class _EditMetricsSheet extends StatefulWidget {
 }
 
 class _EditMetricsSheetState extends State<_EditMetricsSheet> {
-  late TextEditingController _heightController;
-  late TextEditingController _weightController;
-  late TextEditingController _ageController;
+  late int _selectedHeight;
+  late int _selectedWeight;
+  late int _selectedAge;
   late TextEditingController _bodyFatController;
+
+  late FixedExtentScrollController _heightController;
+  late FixedExtentScrollController _weightController;
+  late FixedExtentScrollController _ageController;
 
   Gender? _selectedGender;
   FitnessGoal? _selectedGoal;
@@ -420,15 +370,14 @@ class _EditMetricsSheetState extends State<_EditMetricsSheet> {
   @override
   void initState() {
     super.initState();
-    _heightController = TextEditingController(
-      text: widget.userStats?.height?.toString() ?? '',
-    );
-    _weightController = TextEditingController(
-      text: widget.userStats?.weight?.toString() ?? '',
-    );
-    _ageController = TextEditingController(
-      text: widget.userStats?.age?.toString() ?? '',
-    );
+    _selectedHeight = (widget.userStats?.height?.toInt() ?? 170);
+    _selectedWeight = (widget.userStats?.weight?.toInt() ?? 70);
+    _selectedAge = (widget.userStats?.age ?? 25);
+
+    _heightController = FixedExtentScrollController(initialItem: _selectedHeight - 120);
+    _weightController = FixedExtentScrollController(initialItem: _selectedWeight - 40);
+    _ageController = FixedExtentScrollController(initialItem: _selectedAge - 15);
+
     _bodyFatController = TextEditingController(
       text: widget.userStats?.bodyFatPercentage?.toString() ?? '',
     );
@@ -449,11 +398,6 @@ class _EditMetricsSheetState extends State<_EditMetricsSheet> {
     final stats = widget.userStats;
     if (stats == null) return;
 
-    final height =
-        _heightController.text.isEmpty ? null : double.tryParse(_heightController.text);
-    final weight =
-        _weightController.text.isEmpty ? null : double.tryParse(_weightController.text);
-    final age = _ageController.text.isEmpty ? null : int.tryParse(_ageController.text);
     final bodyFat = _bodyFatController.text.isEmpty
         ? null
         : double.tryParse(_bodyFatController.text);
@@ -466,9 +410,9 @@ class _EditMetricsSheetState extends State<_EditMetricsSheet> {
       level: stats.level,
       totalExp: stats.totalExp,
       createdAt: stats.createdAt,
-      height: height,
-      weight: weight,
-      age: age,
+      height: _selectedHeight.toDouble(),
+      weight: _selectedWeight.toDouble(),
+      age: _selectedAge,
       gender: _selectedGender,
       bodyFatPercentage: bodyFat,
       fitnessGoal: _selectedGoal,
@@ -486,51 +430,168 @@ class _EditMetricsSheetState extends State<_EditMetricsSheet> {
         right: 16,
         top: 16,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('EDIT BODY METRICS', style: AppTextStyles.sectionTitle),
-          const SizedBox(height: 16),
-          _buildTextField('Height (cm)', _heightController),
-          const SizedBox(height: 12),
-          _buildTextField('Weight (kg)', _weightController),
-          const SizedBox(height: 12),
-          _buildTextField('Age', _ageController),
-          const SizedBox(height: 12),
-          _buildGenderSelector(),
-          const SizedBox(height: 12),
-          _buildTextField('Body Fat %', _bodyFatController),
-          const SizedBox(height: 12),
-          _buildGoalSelector(),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: AppColors.inputBorder),
-                  ),
-                  child: Text('CANCEL', style: AppTextStyles.label),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('EDIT BODY METRICS', style: AppTextStyles.sectionTitle),
+                IconButton(
+                  icon: const Icon(Icons.keyboard_hide, color: AppColors.textSecondary),
+                  onPressed: () => FocusScope.of(context).unfocus(),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: _handleSave,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildNumberPicker('Height (cm)', _selectedHeight, 120, 220, _heightController),
+            const SizedBox(height: 12),
+            _buildWeightPicker('Weight (kg)', _selectedWeight, _weightController),
+            const SizedBox(height: 12),
+            _buildNumberPicker('Age', _selectedAge, 15, 100, _ageController),
+            const SizedBox(height: 12),
+            _buildGenderSelector(),
+            const SizedBox(height: 12),
+            _buildTextField('Body Fat %', _bodyFatController),
+            const SizedBox(height: 12),
+            _buildGoalSelector(),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppColors.inputBorder),
+                    ),
+                    child: Text('CANCEL', style: AppTextStyles.label),
                   ),
-                  child: Text('SAVE',
-                      style: AppTextStyles.label.copyWith(
-                          color: Colors.white, letterSpacing: 2)),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-        ],
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _handleSave,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                    ),
+                    child: Text('SAVE',
+                        style: AppTextStyles.label.copyWith(
+                            color: Colors.white, letterSpacing: 2)),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildNumberPicker(
+    String label,
+    int value,
+    int min,
+    int max,
+    FixedExtentScrollController controller,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: AppTextStyles.label),
+        const SizedBox(height: 8),
+        Container(
+          height: 120,
+          decoration: BoxDecoration(
+            color: AppColors.inputBackground,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppColors.inputBorder, width: 0.5),
+          ),
+          child: ListWheelScrollView.useDelegate(
+            controller: controller,
+            itemExtent: 40,
+            diameterRatio: 1.2,
+            onSelectedItemChanged: (index) {
+              setState(() {
+                if (label.contains('Height')) {
+                  _selectedHeight = min + index;
+                } else if (label.contains('Age')) {
+                  _selectedAge = min + index;
+                }
+              });
+            },
+            childDelegate: ListWheelChildBuilderDelegate(
+              builder: (context, index) {
+                final itemValue = min + index;
+                final isSelected = itemValue == value;
+                return Center(
+                  child: Text(
+                    '$itemValue',
+                    style: AppTextStyles.body.copyWith(
+                      color: isSelected ? AppColors.primary : AppColors.textSecondary,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                      fontSize: isSelected ? 18 : 16,
+                    ),
+                  ),
+                );
+              },
+              childCount: max - min + 1,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWeightPicker(
+    String label,
+    int value,
+    FixedExtentScrollController controller,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: AppTextStyles.label),
+        const SizedBox(height: 8),
+        Container(
+          height: 120,
+          decoration: BoxDecoration(
+            color: AppColors.inputBackground,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppColors.inputBorder, width: 0.5),
+          ),
+          child: ListWheelScrollView.useDelegate(
+            controller: controller,
+            itemExtent: 40,
+            diameterRatio: 1.2,
+            onSelectedItemChanged: (index) {
+              setState(() {
+                _selectedWeight = 40 + index;
+              });
+            },
+            childDelegate: ListWheelChildBuilderDelegate(
+              builder: (context, index) {
+                final itemValue = 40 + index;
+                final isSelected = itemValue == value;
+                return Center(
+                  child: Text(
+                    '$itemValue',
+                    style: AppTextStyles.body.copyWith(
+                      color: isSelected ? AppColors.primary : AppColors.textSecondary,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                      fontSize: isSelected ? 18 : 16,
+                    ),
+                  ),
+                );
+              },
+              childCount: 61,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -567,6 +628,10 @@ class _EditMetricsSheetState extends State<_EditMetricsSheet> {
             ),
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            suffixIcon: IconButton(
+              icon: const Icon(Icons.close, size: 20, color: AppColors.textSecondary),
+              onPressed: () => FocusScope.of(context).unfocus(),
+            ),
           ),
         ),
       ],

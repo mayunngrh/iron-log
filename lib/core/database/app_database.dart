@@ -17,10 +17,41 @@ class AppDatabase {
     final path = join(await getDatabasesPath(), 'ironlog.db');
     return openDatabase(
       path,
-      version: 5,
+      version: 6,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
+      onConfigure: _onConfigure,
     );
+  }
+
+  Future<void> _onConfigure(Database db) async {
+    // Enable foreign keys
+    await db.execute('PRAGMA foreign_keys = ON');
+
+    // Check if migration to v5 was applied
+    try {
+      final result = await db.rawQuery('PRAGMA table_info(user_stats)');
+      final hasHeightColumn = result.any((col) => col['name'] == 'height');
+
+      if (!hasHeightColumn) {
+        // Migration didn't happen, apply it manually
+        await db.execute('ALTER TABLE user_stats ADD COLUMN height REAL');
+        await db.execute('ALTER TABLE user_stats ADD COLUMN weight REAL');
+        await db.execute('ALTER TABLE user_stats ADD COLUMN age INTEGER');
+        await db.execute('ALTER TABLE user_stats ADD COLUMN gender TEXT');
+        await db.execute('ALTER TABLE user_stats ADD COLUMN bodyFatPercentage REAL');
+        await db.execute('ALTER TABLE user_stats ADD COLUMN fitnessGoal TEXT');
+
+        // Add bodyweight exercises if not present
+        final batch = db.batch();
+        for (final e in ExerciseSeeds.bodyweightExercises) {
+          batch.insert('exercises', e, conflictAlgorithm: ConflictAlgorithm.ignore);
+        }
+        await batch.commit(noResult: true);
+      }
+    } catch (e) {
+      // Silently ignore errors during migration check
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -76,7 +107,14 @@ class AppDatabase {
         lastName  TEXT    NOT NULL,
         level     INTEGER NOT NULL DEFAULT 1,
         totalExp  INTEGER NOT NULL DEFAULT 0,
-        createdAt TEXT    NOT NULL
+        createdAt TEXT    NOT NULL,
+        height REAL,
+        weight REAL,
+        age INTEGER,
+        gender TEXT,
+        bodyFatPercentage REAL,
+        fitnessGoal TEXT,
+        profilePhotoPath TEXT
       )
     ''');
 
@@ -176,6 +214,7 @@ class AppDatabase {
       );
     }
     if (oldVersion < 5) {
+      // Add body metrics columns to user_stats
       await db.execute(
         'ALTER TABLE user_stats ADD COLUMN height REAL',
       );
@@ -195,11 +234,17 @@ class AppDatabase {
         'ALTER TABLE user_stats ADD COLUMN fitnessGoal TEXT',
       );
 
+      // Add bodyweight exercises
       final batch = db.batch();
       for (final e in ExerciseSeeds.bodyweightExercises) {
         batch.insert('exercises', e);
       }
       await batch.commit(noResult: true);
+    }
+    if (oldVersion < 6) {
+      await db.execute(
+        'ALTER TABLE user_stats ADD COLUMN profilePhotoPath TEXT',
+      );
     }
   }
 }

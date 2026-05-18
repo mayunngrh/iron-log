@@ -222,11 +222,6 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: const Icon(Icons.notifications_none_rounded,
                 color: AppColors.textSecondary, size: 24),
           ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.menu_rounded,
-                color: AppColors.textSecondary, size: 24),
-          ),
         ],
       ),
     );
