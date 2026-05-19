@@ -761,8 +761,31 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
                   style: AppTextStyles.label.copyWith(
                       fontSize: 10, color: AppColors.textSecondary)),
               const SizedBox(height: 6),
-              Text(_currentExercise.exercise.name.toUpperCase(),
-                  style: AppTextStyles.sectionTitle.copyWith(fontSize: 18)),
+              Column(
+                children: [
+                  Text(_currentExercise.exercise.name.toUpperCase(),
+                      style: AppTextStyles.sectionTitle.copyWith(fontSize: 18)),
+                  if (_currentExercise.exercise.isBodyweight)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: AppColors.primary, width: 0.5),
+                        ),
+                        child: Text(
+                          'BODYWEIGHT',
+                          style: AppTextStyles.label.copyWith(
+                            fontSize: 8,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
               const SizedBox(height: 24),
               Text('${_currentSet.reps}',
                   style: GoogleFonts.oswald(
@@ -886,8 +909,10 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _statChip('WEIGHT',
-                  '${_currentSet.weight.toStringAsFixed(_currentSet.weight % 1 == 0 ? 0 : 1)} KG'),
+              _statChip(
+                _currentExercise.exercise.isBodyweight ? 'BODYWEIGHT' : 'WEIGHT',
+                '${_currentSet.weight.toStringAsFixed(_currentSet.weight % 1 == 0 ? 0 : 1)} KG',
+              ),
               _statChip(
                   'LAST SET', _formatTime(_activeSetElapsedSeconds)),
             ],

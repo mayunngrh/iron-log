@@ -4,6 +4,7 @@ class Exercise {
   final String category;
   final String muscleGroup;
   final String type;
+  final String equipment;
 
   const Exercise({
     required this.id,
@@ -11,6 +12,7 @@ class Exercise {
     required this.category,
     required this.muscleGroup,
     required this.type,
+    this.equipment = 'FREE_WEIGHT',
   });
 
   factory Exercise.fromMap(Map<String, dynamic> m) => Exercise(
@@ -19,7 +21,10 @@ class Exercise {
         category: m['category'] as String,
         muscleGroup: m['muscleGroup'] as String,
         type: m['type'] as String,
+        equipment: m['equipment'] as String? ?? 'FREE_WEIGHT',
       );
+
+  bool get isBodyweight => equipment == 'BODYWEIGHT';
 
   String get autoTag => '${muscleGroup.toUpperCase()} • $type';
 }

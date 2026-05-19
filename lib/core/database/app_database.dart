@@ -17,7 +17,7 @@ class AppDatabase {
     final path = join(await getDatabasesPath(), 'ironlog.db');
     return openDatabase(
       path,
-      version: 6,
+      version: 7,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
       onConfigure: _onConfigure,
@@ -61,7 +61,8 @@ class AppDatabase {
         name         TEXT    NOT NULL,
         category     TEXT    NOT NULL,
         muscleGroup  TEXT    NOT NULL,
-        type         TEXT    NOT NULL
+        type         TEXT    NOT NULL,
+        equipment    TEXT    NOT NULL DEFAULT 'FREE_WEIGHT'
       )
     ''');
 
@@ -244,6 +245,11 @@ class AppDatabase {
     if (oldVersion < 6) {
       await db.execute(
         'ALTER TABLE user_stats ADD COLUMN profilePhotoPath TEXT',
+      );
+    }
+    if (oldVersion < 7) {
+      await db.execute(
+        'ALTER TABLE exercises ADD COLUMN equipment TEXT NOT NULL DEFAULT "FREE_WEIGHT"',
       );
     }
   }

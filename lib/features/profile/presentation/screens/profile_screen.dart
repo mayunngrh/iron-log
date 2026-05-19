@@ -85,10 +85,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Future<void> _pickProfilePhoto() async {
+  void _showPhotoSourceDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: Text('Select Photo Source', style: AppTextStyles.sectionTitle),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt, color: AppColors.primary),
+              title: Text('Take Photo', style: AppTextStyles.body),
+              onTap: () {
+                Navigator.pop(context);
+                _takePhoto();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library, color: AppColors.primary),
+              title: Text('Choose from Gallery', style: AppTextStyles.body),
+              onTap: () {
+                Navigator.pop(context);
+                _pickFromGallery();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _takePhoto() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.camera);
+    _saveProfilePhoto(pickedFile);
+  }
+
+  Future<void> _pickFromGallery() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    _saveProfilePhoto(pickedFile);
+  }
 
+  Future<void> _saveProfilePhoto(XFile? pickedFile) async {
     if (pickedFile != null && _userStats != null) {
       final updatedStats = UserStats(
         id: _userStats!.id,
@@ -127,15 +167,152 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              _buildBodyMetricsCard(),
+              _buildProfileHeader(),
               const SizedBox(height: 24),
-              _buildStatsCard(),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  children: [
+                    _buildBodyMetricsCard(),
+                    const SizedBox(height: 24),
+                    _buildStatsCard(),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildProfileHeader() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            AppColors.surface.withValues(alpha: 0.8),
+            AppColors.background,
+          ],
+        ),
+        border: Border(
+          bottom: BorderSide(color: AppColors.inputBorder, width: 0.5),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Stack(
+            alignment: Alignment.bottomRight,
+            children: [
+              Container(
+                width: 140,
+                height: 140,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.primary, width: 3),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.3),
+                      blurRadius: 12,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: ClipOval(
+                  child: _userStats?.profilePhotoPath != null
+                      ? Image.file(
+                          File(_userStats!.profilePhotoPath!),
+                          fit: BoxFit.cover,
+                        )
+                      : Container(
+                          color: AppColors.inputBackground,
+                          child: const Icon(
+                            Icons.person_rounded,
+                            size: 70,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                ),
+              ),
+              GestureDetector(
+                onTap: _showPhotoSourceDialog,
+                child: Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.primary,
+                    border: Border.all(color: AppColors.background, width: 3),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.4),
+                        blurRadius: 8,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.camera_alt_rounded,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            _userStats != null
+                ? '${_userStats!.firstName} ${_userStats!.lastName}'.toUpperCase()
+                : 'USER PROFILE',
+            style: AppTextStyles.sectionTitle.copyWith(fontSize: 22),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppColors.primary, width: 0.5),
+                ),
+                child: Text(
+                  'LEVEL ${_userStats?.level ?? 1}',
+                  style: AppTextStyles.label.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFB800).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFFFFB800), width: 0.5),
+                ),
+                child: Text(
+                  '${_userStats?.totalExp ?? 0} EXP',
+                  style: AppTextStyles.label.copyWith(
+                    color: const Color(0xFFFFB800),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -155,41 +332,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('BODY METRICS', style: AppTextStyles.sectionTitle),
-              Row(
-                children: [
-                  IconButton(
-                    onPressed: _pickProfilePhoto,
-                    icon:
-                        const Icon(Icons.photo_outlined, color: AppColors.primary),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                  IconButton(
-                    onPressed: _showEditMetricsSheet,
-                    icon:
-                        const Icon(Icons.edit_outlined, color: AppColors.primary),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                ],
+              IconButton(
+                onPressed: _showEditMetricsSheet,
+                icon:
+                    const Icon(Icons.edit_outlined, color: AppColors.primary),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
               ),
             ],
           ),
-          if (_userStats?.profilePhotoPath != null)
-            Column(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.file(
-                    File(_userStats!.profilePhotoPath!),
-                    width: 120,
-                    height: 120,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                const SizedBox(height: 12),
-              ],
-            ),
           const SizedBox(height: 12),
           if (_userStats?.height != null || _userStats?.weight != null)
             Column(

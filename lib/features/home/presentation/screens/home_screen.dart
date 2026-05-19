@@ -527,22 +527,22 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     if (isToday) {
-      // Today (no session): outlined red circle with bold number
+      // Today (no session): outlined yellow circle with bold number
       return Container(
         width: 36,
         height: 36,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(
-            color: AppColors.primary.withValues(alpha: 0.7),
+            color: const Color(0xFFFFC107),
             width: 1.5,
           ),
         ),
         child: Center(
           child: Text(
             dayNum,
-            style: TextStyle(
-              color: AppColors.primary.withValues(alpha: 0.9),
+            style: const TextStyle(
+              color: Color(0xFFFFC107),
               fontSize: 12,
               fontWeight: FontWeight.w700,
             ),
