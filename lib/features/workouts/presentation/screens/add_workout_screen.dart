@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
+import '../../../../core/repositories/user_stats_repository.dart';
 import '../../data/models/exercise.dart';
 import '../../data/models/workout.dart';
 import '../../data/repositories/workout_repository.dart';
@@ -68,6 +70,41 @@ class _AddWorkoutScreenState extends State<AddWorkoutScreen> {
   String _methodology = 'STRENGTH';
   final List<_ExerciseDraft> _exercises = [];
   bool _isSaving = false;
+  double? _userWeight;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserWeight();
+  }
+
+  Future<void> _loadUserWeight() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final username = prefs.getString('current_username') ?? 'test_user';
+      final userStatsRepository = UserStatsRepository();
+      final userStats = await userStatsRepository.getUserStats(username);
+      if (!mounted) return;
+      setState(() {
+        _userWeight = userStats?.weight;
+        if (_userWeight != null) {
+          final weightStr = _userWeight!.toStringAsFixed(0);
+          for (final draft in _exercises) {
+            if (draft.exercise.isBodyweight) {
+              for (final s in draft.sets) {
+                if (s.weightCtrl.text.trim().isEmpty ||
+                    s.weightCtrl.text.trim() == '0') {
+                  s.weightCtrl.text = weightStr;
+                }
+              }
+            }
+          }
+        }
+      });
+    } catch (e) {
+      debugPrint('Error loading user weight: $e');
+    }
+  }
 
   @override
   void dispose() {
@@ -97,7 +134,13 @@ class _AddWorkoutScreenState extends State<AddWorkoutScreen> {
     );
     if (exercise != null) {
       setState(() {
-        _exercises.add(_ExerciseDraft(exercise, exercise.autoTag));
+        final draft = _ExerciseDraft(exercise, exercise.autoTag);
+        if (exercise.isBodyweight && _userWeight != null) {
+          final seeded = _SetDraft();
+          seeded.weightCtrl.text = _userWeight!.toStringAsFixed(0);
+          draft.sets.add(seeded);
+        }
+        _exercises.add(draft);
       });
     }
   }
@@ -515,7 +558,13 @@ class _AddWorkoutScreenState extends State<AddWorkoutScreen> {
 
   Widget _buildAddSetButton(int index) {
     return GestureDetector(
-      onTap: () => setState(() => _exercises[index].sets.add(_SetDraft())),
+      onTap: () {
+        final draft = _SetDraft();
+        if (_exercises[index].exercise.isBodyweight && _userWeight != null) {
+          draft.weightCtrl.text = _userWeight!.toStringAsFixed(0);
+        }
+        setState(() => _exercises[index].sets.add(draft));
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(

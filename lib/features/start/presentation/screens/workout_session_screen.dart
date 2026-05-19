@@ -64,7 +64,57 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
     super.initState();
     _workout = widget.workout;
     _initCompletionGrid();
+    _initBodyweightExerciseWeights();
     _startMasterTimer();
+  }
+
+  Future<void> _initBodyweightExerciseWeights() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final username = prefs.getString('current_username') ?? 'test_user';
+      final userStatsRepository = UserStatsRepository();
+      final userStats = await userStatsRepository.getUserStats(username);
+
+      final userWeight = userStats?.weight;
+      if (userWeight != null && mounted) {
+        setState(() {
+          final updatedExercises = _workout.exercises.map((workoutExercise) {
+            if (workoutExercise.exercise.isBodyweight) {
+              final updatedSets = workoutExercise.sets
+                  .map((set) => ExerciseSet(
+                        id: set.id,
+                        workoutExerciseId: set.workoutExerciseId,
+                        setNumber: set.setNumber,
+                        reps: set.reps,
+                        weight: userWeight,
+                      ))
+                  .toList();
+              return WorkoutExercise(
+                id: workoutExercise.id,
+                workoutId: workoutExercise.workoutId,
+                exercise: workoutExercise.exercise,
+                orderIndex: workoutExercise.orderIndex,
+                tag: workoutExercise.tag,
+                sets: updatedSets,
+              );
+            }
+            return workoutExercise;
+          }).toList();
+
+          _workout = Workout(
+            id: _workout.id,
+            name: _workout.name,
+            methodology: _workout.methodology,
+            estimatedDuration: _workout.estimatedDuration,
+            notes: _workout.notes,
+            createdAt: _workout.createdAt,
+            exercises: updatedExercises,
+          );
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading bodyweight exercise weights: $e');
+    }
   }
 
   @override

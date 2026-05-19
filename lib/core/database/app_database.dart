@@ -52,6 +52,35 @@ class AppDatabase {
     } catch (e) {
       // Silently ignore errors during migration check
     }
+
+    // Backfill equipment column for bodyweight exercises.
+    // This self-heals older installs where bodyweight exercises had wrong equipment type.
+    try {
+      final cols = await db.rawQuery('PRAGMA table_info(exercises)');
+      final hasEquipment = cols.any((c) => c['name'] == 'equipment');
+
+      if (hasEquipment) {
+        // Column exists, backfill bodyweight exercises with correct type
+        final bodyweightNames = <String>{
+          ...ExerciseSeeds.all
+              .where((e) => e['equipment'] == 'BODYWEIGHT')
+              .map((e) => e['name']!),
+          ...ExerciseSeeds.bodyweightExercises.map((e) => e['name']!),
+        };
+        final batch = db.batch();
+        for (final name in bodyweightNames) {
+          batch.update(
+            'exercises',
+            {'equipment': 'BODYWEIGHT'},
+            where: 'name = ? AND equipment != ?',
+            whereArgs: [name, 'BODYWEIGHT'],
+          );
+        }
+        await batch.commit(noResult: true);
+      }
+    } catch (e) {
+      // Silently ignore errors
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -210,9 +239,13 @@ class AppDatabase {
       ''');
     }
     if (oldVersion < 4) {
-      await db.execute(
-        'ALTER TABLE session_exercises ADD COLUMN totalReps INTEGER NOT NULL DEFAULT 0',
-      );
+      try {
+        await db.execute(
+          'ALTER TABLE session_exercises ADD COLUMN totalReps INTEGER NOT NULL DEFAULT 0',
+        );
+      } catch (e) {
+        // Column may already exist in some edge cases, ignore
+      }
     }
     if (oldVersion < 5) {
       // Add body metrics columns to user_stats
@@ -248,9 +281,13 @@ class AppDatabase {
       );
     }
     if (oldVersion < 7) {
-      await db.execute(
-        'ALTER TABLE exercises ADD COLUMN equipment TEXT NOT NULL DEFAULT "FREE_WEIGHT"',
-      );
+      try {
+        await db.execute(
+          'ALTER TABLE exercises ADD COLUMN equipment TEXT NOT NULL DEFAULT "FREE_WEIGHT"',
+        );
+      } catch (e) {
+        // Column may already exist, ignore
+      }
     }
   }
 }

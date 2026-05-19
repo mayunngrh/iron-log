@@ -349,12 +349,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _buildMetricRow('Height', '${_userStats!.height!.toInt()} cm'),
                 if (_userStats?.weight != null)
                   _buildMetricRow('Weight', '${_userStats!.weight!.toStringAsFixed(1)} kg'),
-                if (_userStats?.bmi != null)
+                if (_userStats?.bmi != null) ...[
                   _buildMetricRow(
                     'BMI',
                     '${_userStats!.bmi!.toStringAsFixed(1)} ${_userStats!.bmiCategory}',
                     valueColor: _getBmiColor(_userStats!.bmiCategory),
                   ),
+                  const SizedBox(height: 8),
+                  _buildBmiIndicator(_userStats!.bmi!),
+                ],
               ],
             )
           else
@@ -492,6 +495,121 @@ class _ProfileScreenState extends State<ProfileScreen> {
       default:
         return AppColors.textSecondary;
     }
+  }
+
+  Widget _buildBmiIndicator(double bmi) {
+    const maxBmi = 40.0;
+    final position = (bmi / maxBmi).clamp(0.0, 1.0);
+
+    String _getBmiCategory(double bmi) {
+      if (bmi < 18.5) return 'UNDERWEIGHT';
+      if (bmi < 25.0) return 'NORMAL';
+      if (bmi < 30.0) return 'OVERWEIGHT';
+      return 'OBESE';
+    }
+
+    final category = _getBmiCategory(bmi);
+    final indicatorColor = _getBmiColor(category);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: SizedBox(
+            height: 28,
+            child: Stack(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 463,
+                      child: Container(
+                        color: const Color(0xFF2196F3),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 375,
+                      child: Container(
+                        color: const Color(0xFF4CAF50),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 188,
+                      child: Container(
+                        color: const Color(0xFFFFC107),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 312,
+                      child: Container(
+                        color: const Color(0xFFF44336),
+                      ),
+                    ),
+                  ],
+                ),
+                Positioned(
+                  left: position * 100 * 0.01 * 335,
+                  top: 0,
+                  bottom: 0,
+                  child: Transform.translate(
+                    offset: const Offset(-6, 0),
+                    child: Container(
+                      width: 12,
+                      decoration: BoxDecoration(
+                        color: indicatorColor,
+                        borderRadius: BorderRadius.circular(6),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.3),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('< 18.5', style: AppTextStyles.label.copyWith(fontSize: 8, color: const Color(0xFF2196F3))),
+                Text('Underweight', style: AppTextStyles.label.copyWith(fontSize: 10, color: AppColors.textSecondary)),
+              ],
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text('18.5 - 25', style: AppTextStyles.label.copyWith(fontSize: 8, color: const Color(0xFF4CAF50))),
+                Text('Normal', style: AppTextStyles.label.copyWith(fontSize: 10, color: AppColors.textSecondary)),
+              ],
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text('25 - 30', style: AppTextStyles.label.copyWith(fontSize: 8, color: const Color(0xFFFFC107))),
+                Text('Overweight', style: AppTextStyles.label.copyWith(fontSize: 10, color: AppColors.textSecondary)),
+              ],
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text('> 30', style: AppTextStyles.label.copyWith(fontSize: 8, color: const Color(0xFFF44336))),
+                Text('Obese', style: AppTextStyles.label.copyWith(fontSize: 10, color: AppColors.textSecondary)),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
   }
 }
 
