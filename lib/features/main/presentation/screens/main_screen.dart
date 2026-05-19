@@ -35,31 +35,98 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Widget _buildBottomNav() {
+    final isWorkoutActive = _currentIndex == 2;
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(
-          top: BorderSide(color: AppColors.inputBorder, width: 0.5),
-        ),
-      ),
+      color: AppColors.background,
       child: SafeArea(
+        top: false,
         child: SizedBox(
-          height: 62,
-          child: Row(
+          height: 76,
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.topCenter,
             children: [
-              _navItem(icon: Icons.home_rounded, label: 'HOME', index: 0),
-              _navItem(
-                  icon: Icons.people_alt_rounded,
-                  label: 'COMMUNITY',
-                  index: 1),
-              _navItemCenter(
-                  icon: Icons.fitness_center_rounded,
-                  label: 'WORKOUTS',
-                  index: 2),
-              _navItem(
-                  icon: Icons.history_rounded, label: 'HISTORY', index: 3),
-              _navItem(
-                  icon: Icons.person_rounded, label: 'PROFILE', index: 4),
+              Positioned.fill(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: AppColors.surface,
+                    border: Border(
+                      top: BorderSide(
+                          color: AppColors.inputBorder, width: 0.5),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      _navItem(
+                          icon: Icons.home_rounded, label: 'HOME', index: 0),
+                      _navItem(
+                          icon: Icons.people_alt_rounded,
+                          label: 'COMMUNITY',
+                          index: 1),
+                      const Expanded(child: SizedBox()),
+                      _navItem(
+                          icon: Icons.history_rounded,
+                          label: 'HISTORY',
+                          index: 3),
+                      _navItem(
+                          icon: Icons.person_rounded,
+                          label: 'PROFILE',
+                          index: 4),
+                    ],
+                  ),
+                ),
+              ),
+              Positioned(
+                top: -24,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => setState(() => _currentIndex = 2),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isWorkoutActive
+                              ? AppColors.primary
+                              : AppColors.surface,
+                          border: Border.all(
+                            color: AppColors.primary,
+                            width: 3,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.4),
+                              blurRadius: 12,
+                              spreadRadius: 1,
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          Icons.fitness_center_rounded,
+                          size: 30,
+                          color: isWorkoutActive
+                              ? Colors.white
+                              : AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'WORKOUTS',
+                        style: AppTextStyles.label.copyWith(
+                          fontSize: 9,
+                          color: isWorkoutActive
+                              ? AppColors.primary
+                              : AppColors.textSecondary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -99,46 +166,4 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  Widget _navItemCenter({
-    required IconData icon,
-    required String label,
-    required int index,
-  }) {
-    final isActive = _currentIndex == index;
-    return Expanded(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => setState(() => _currentIndex = index),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isActive ? AppColors.primary : AppColors.textSecondary,
-                  width: 1.5,
-                ),
-              ),
-              child: Icon(
-                icon,
-                size: 22,
-                color: isActive ? AppColors.primary : AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 3),
-            Text(
-              label,
-              style: AppTextStyles.label.copyWith(
-                fontSize: 9,
-                color: isActive ? AppColors.primary : AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

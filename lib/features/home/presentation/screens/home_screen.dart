@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -190,8 +191,16 @@ class _HomeScreenState extends State<HomeScreen> {
               shape: BoxShape.circle,
               border: Border.all(color: AppColors.inputBorder, width: 1.5),
             ),
-            child: const Icon(Icons.person_rounded,
-                color: AppColors.textSecondary, size: 24),
+            child: ClipOval(
+              child: _userStats?.profilePhotoPath != null &&
+                      File(_userStats!.profilePhotoPath!).existsSync()
+                  ? Image.file(
+                      File(_userStats!.profilePhotoPath!),
+                      fit: BoxFit.cover,
+                    )
+                  : const Icon(Icons.person_rounded,
+                      color: AppColors.textSecondary, size: 24),
+            ),
           ),
           const SizedBox(width: 10),
           Stack(
