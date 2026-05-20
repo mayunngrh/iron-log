@@ -1,11 +1,15 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/models/user_stats.dart';
+import '../../../../core/models/shared_session.dart';
 import '../../../../core/repositories/user_stats_repository.dart';
+import '../../../../core/repositories/shared_session_repository.dart';
 import '../../../workouts/data/models/workout.dart';
 import '../../../history/data/models/session.dart';
 import '../../../history/data/repositories/session_repository.dart';
@@ -370,6 +374,106 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
         duration: const Duration(seconds: 4),
       ),
     );
+  }
+
+  Future<void> _captureSessionMemory() async {
+    final imagePicker = ImagePicker();
+    final pickedFile = await imagePicker.pickImage(source: ImageSource.camera);
+
+    if (pickedFile != null && mounted) {
+      final totalVolume = _workout.exercises.fold<double>(
+        0,
+        (sum, ex) => sum +
+            ex.sets.fold<double>(
+              0,
+              (s, set) => s + (set.reps * set.weight),
+            ),
+      );
+      final totalSets = _completedSets.expand((l) => l).length;
+
+      if (mounted) {
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (_) => _SessionMemoryPreview(
+            imagePath: pickedFile.path,
+            workoutName: _workout.name,
+            duration: _formatTime(_elapsedSessionSeconds),
+            volume: totalVolume.toStringAsFixed(0),
+            sets: totalSets.toString(),
+            expGained: _expGainedThisSession,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _shareSessionToCommunity() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final username = prefs.getString('current_username') ?? 'test_user';
+      final userStatsRepository = UserStatsRepository();
+      final userStats = await userStatsRepository.getUserStats(username);
+
+      if (userStats == null) return;
+
+      final totalVolume = _workout.exercises.fold<double>(
+        0,
+        (sum, ex) => sum +
+            ex.sets.fold<double>(
+              0,
+              (s, set) => s + (set.reps * set.weight),
+            ),
+      );
+      final totalSets = _completedSets.expand((l) => l).length;
+
+      final exercises = _workout.exercises
+          .map((ex) => {
+                'name': ex.exercise.name,
+                'sets': ex.sets.length,
+                'reps': ex.sets.isNotEmpty ? ex.sets.first.reps : 0,
+              })
+          .toList();
+
+      final sharedSession = SharedSession(
+        username: username,
+        firstName: userStats.firstName,
+        lastName: userStats.lastName,
+        workoutName: _workout.name,
+        description: 'Just completed this awesome workout!',
+        date: DateTime.now(),
+        durationSeconds: _elapsedSessionSeconds,
+        totalWeightLifted: totalVolume,
+        totalSetsCompleted: totalSets,
+        methodology: _workout.methodology,
+        exercises: exercises,
+        createdAt: DateTime.now(),
+      );
+
+      final sharedSessionRepository = SharedSessionRepository();
+      await sharedSessionRepository.shareSession(sharedSession);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Workout shared to community! 🎉'),
+            backgroundColor: AppColors.primary,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error sharing session: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to share workout'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -1037,6 +1141,23 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
           const SizedBox(height: 24),
           if (_newStats != null) _buildExpProgressCard(),
           const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton.icon(
+              onPressed: _captureSessionMemory,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary.withValues(alpha: 0.2),
+                side: BorderSide(color: AppColors.primary, width: 1.5),
+              ),
+              icon: const Icon(Icons.camera_alt_rounded,
+                  color: AppColors.primary),
+              label: Text('CAPTURE MEMORY',
+                  style: AppTextStyles.buttonText.copyWith(
+                      color: AppColors.primary, fontWeight: FontWeight.w600)),
+            ),
+          ),
+          const SizedBox(height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
@@ -1050,6 +1171,22 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
           ..._workout.exercises.asMap().entries.map((e) =>
               _buildExerciseSummaryRow(e.key, e.value)),
           const SizedBox(height: 32),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton.icon(
+              onPressed: _shareSessionToCommunity,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary.withValues(alpha: 0.2),
+                side: BorderSide(color: AppColors.primary, width: 1.5),
+              ),
+              icon: const Icon(Icons.share_rounded, color: AppColors.primary),
+              label: Text('SHARE TO COMMUNITY',
+                  style: AppTextStyles.buttonText.copyWith(
+                      color: AppColors.primary, fontWeight: FontWeight.w600)),
+            ),
+          ),
+          const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
             height: 52,
@@ -1301,6 +1438,201 @@ class _WorkoutSessionScreenState extends State<WorkoutSessionScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _SessionMemoryPreview extends StatelessWidget {
+  final String imagePath;
+  final String workoutName;
+  final String duration;
+  final String volume;
+  final String sets;
+  final int expGained;
+
+  const _SessionMemoryPreview({
+    required this.imagePath,
+    required this.workoutName,
+    required this.duration,
+    required this.volume,
+    required this.sets,
+    required this.expGained,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: AppColors.background,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Expanded(
+            child: Stack(
+              children: [
+                Image.file(
+                  File(imagePath),
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                ),
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.7),
+                      ],
+                    ),
+                  ),
+                ),
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            color: AppColors.surface.withValues(alpha: 0.9),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Image.asset(
+                            'assets/images/logo_icon.png',
+                            fit: BoxFit.contain,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                workoutName.toUpperCase(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  _StatBadge('Duration', duration),
+                                  _StatBadge('Volume', '$volume kg'),
+                                  _StatBadge('Sets', sets),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  const Icon(Icons.bolt_rounded,
+                                      color: Color(0xFFFF9800), size: 16),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '+$expGained EXP',
+                                    style: const TextStyle(
+                                      color: Color(0xFFFF9800),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 48,
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('DISCARD'),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: SizedBox(
+                    height: 48,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text('Memory saved! 🎉'),
+                            backgroundColor: AppColors.primary,
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                      ),
+                      child: const Text('SAVE MEMORY'),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatBadge extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _StatBadge(this.label, this.value);
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 9,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
     );
   }
 }

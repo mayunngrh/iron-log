@@ -6,6 +6,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_text_styles.dart';
 import '../../../../core/models/user_stats.dart';
 import '../../../../core/repositories/user_stats_repository.dart';
+import '../../../../core/repositories/user_follow_repository.dart';
 import '../../../history/data/repositories/session_repository.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -18,12 +19,15 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final _userStatsRepository = UserStatsRepository();
   final _sessionRepository = SessionRepository();
+  final _userFollowRepository = UserFollowRepository();
 
   UserStats? _userStats;
   int _totalSessions = 0;
   double _totalVolume = 0;
   int _totalReps = 0;
   int _totalSets = 0;
+  int _followerCount = 0;
+  int _followingCount = 0;
   bool _loading = true;
 
   @override
@@ -39,6 +43,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       final userStats = await _userStatsRepository.getUserStats(username);
       final allSessions = await _sessionRepository.getAllSessions();
+      final followerCount = await _userFollowRepository.getFollowerCount(username);
+      final followingCount = await _userFollowRepository.getFollowingCount(username);
 
       int totalReps = 0;
       int totalSets = 0;
@@ -52,17 +58,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
         }
       }
 
-      setState(() {
-        _userStats = userStats;
-        _totalSessions = allSessions.length;
-        _totalVolume = totalVolume;
-        _totalReps = totalReps;
-        _totalSets = totalSets;
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _userStats = userStats;
+          _totalSessions = allSessions.length;
+          _totalVolume = totalVolume;
+          _totalReps = totalReps;
+          _totalSets = totalSets;
+          _followerCount = followerCount;
+          _followingCount = followingCount;
+          _loading = false;
+        });
+      }
     } catch (e) {
       debugPrint('Error loading profile data: $e');
-      setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 
@@ -449,6 +461,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: _buildStatBox(
                   label: 'SETS',
                   value: _totalSets.toString(),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text('SOCIAL', style: AppTextStyles.sectionTitle),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatBox(
+                  label: 'FOLLOWERS',
+                  value: _followerCount.toString(),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStatBox(
+                  label: 'FOLLOWING',
+                  value: _followingCount.toString(),
                 ),
               ),
             ],

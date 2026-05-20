@@ -17,7 +17,7 @@ class AppDatabase {
     final path = join(await getDatabasesPath(), 'ironlog.db');
     return openDatabase(
       path,
-      version: 7,
+      version: 10,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
       onConfigure: _onConfigure,
@@ -175,6 +175,46 @@ class AppDatabase {
       )
     ''');
 
+    await db.execute('''
+      CREATE TABLE shared_sessions (
+        id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+        username            TEXT    NOT NULL,
+        firstName           TEXT    NOT NULL,
+        lastName            TEXT    NOT NULL,
+        workoutName         TEXT    NOT NULL,
+        description         TEXT,
+        date                TEXT    NOT NULL,
+        durationSeconds     INTEGER NOT NULL,
+        totalWeightLifted   REAL    NOT NULL,
+        totalSetsCompleted  INTEGER NOT NULL,
+        methodology         TEXT,
+        exercises           TEXT    NOT NULL,
+        createdAt           TEXT    NOT NULL,
+        sessionPhotoPath    TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE user_follows (
+        id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+        followerUsername    TEXT    NOT NULL,
+        followingUsername   TEXT    NOT NULL,
+        createdAt           TEXT    NOT NULL,
+        UNIQUE(followerUsername, followingUsername)
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE session_likes (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        sessionId   INTEGER NOT NULL,
+        username    TEXT    NOT NULL,
+        createdAt   TEXT    NOT NULL,
+        UNIQUE(sessionId, username),
+        FOREIGN KEY (sessionId) REFERENCES shared_sessions(id) ON DELETE CASCADE
+      )
+    ''');
+
     final batch = db.batch();
     for (final e in ExerciseSeeds.all) {
       batch.insert('exercises', e);
@@ -287,6 +327,68 @@ class AppDatabase {
         );
       } catch (e) {
         // Column may already exist, ignore
+      }
+    }
+    if (oldVersion < 8) {
+      try {
+        await db.execute('''
+          CREATE TABLE shared_sessions (
+            id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+            username            TEXT    NOT NULL,
+            firstName           TEXT    NOT NULL,
+            lastName            TEXT    NOT NULL,
+            workoutName         TEXT    NOT NULL,
+            description         TEXT,
+            date                TEXT    NOT NULL,
+            durationSeconds     INTEGER NOT NULL,
+            totalWeightLifted   REAL    NOT NULL,
+            totalSetsCompleted  INTEGER NOT NULL,
+            methodology         TEXT,
+            exercises           TEXT    NOT NULL,
+            createdAt           TEXT    NOT NULL,
+            sessionPhotoPath    TEXT
+          )
+        ''');
+      } catch (e) {
+        // Table may already exist
+      }
+    }
+    if (oldVersion < 9) {
+      try {
+        await db.execute('''
+          CREATE TABLE user_follows (
+            id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+            followerUsername    TEXT    NOT NULL,
+            followingUsername   TEXT    NOT NULL,
+            createdAt           TEXT    NOT NULL,
+            UNIQUE(followerUsername, followingUsername)
+          )
+        ''');
+      } catch (e) {
+        // Table may already exist
+      }
+      try {
+        await db.execute('''
+          CREATE TABLE session_likes (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            sessionId   INTEGER NOT NULL,
+            username    TEXT    NOT NULL,
+            createdAt   TEXT    NOT NULL,
+            UNIQUE(sessionId, username),
+            FOREIGN KEY (sessionId) REFERENCES shared_sessions(id) ON DELETE CASCADE
+          )
+        ''');
+      } catch (e) {
+        // Table may already exist
+      }
+    }
+    if (oldVersion < 10) {
+      try {
+        await db.execute(
+          'ALTER TABLE shared_sessions ADD COLUMN sessionPhotoPath TEXT',
+        );
+      } catch (e) {
+        // Column may already exist
       }
     }
   }
