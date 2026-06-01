@@ -5,7 +5,7 @@ import '../../../../core/network/api_client.dart';
 import '../../../../core/repositories/user_stats_repository.dart';
 import '../../../../features/auth/data/models/register_request.dart' show SignUpRequest;
 import '../../../../features/auth/data/repositories/auth_repository.dart';
-import '../../../../features/main/presentation/screens/main_screen.dart';
+import '../../../../features/auth/presentation/screens/otp_verification_screen.dart';
 import '../widgets/iron_button.dart';
 import '../widgets/iron_text_field.dart';
 
@@ -42,6 +42,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _handleRegister() async {
+    if (_isLoading) return;
+
     if (_firstNameController.text.isEmpty ||
         _lastNameController.text.isEmpty ||
         _usernameController.text.isEmpty ||
@@ -82,30 +84,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       if (!mounted) return;
 
-      await _userStatsRepository.createUserStats(
-        username: username,
-        firstName: firstName,
-        lastName: lastName,
-      );
-
       try {
-        await _repository.login(identifier: email, password: password);
-        if (mounted) {
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (_) => const MainScreen()),
-            (route) => false,
-          );
-        }
-      } catch (loginError) {
-        if (mounted) {
-          String errorMessage = 'Auto-login failed after registration. Please login manually.';
-          if (loginError is ApiException) {
-            final statusText = _getStatusCodeText(loginError.statusCode);
-            errorMessage = 'Auto-login failed: $statusText : ${loginError.message}';
-          }
-          _showSnack(errorMessage);
-          if (mounted) Navigator.pop(context);
-        }
+        await _userStatsRepository.createUserStats(
+          username: username,
+          firstName: firstName,
+          lastName: lastName,
+        );
+      } catch (e) {
+        print('[RegisterScreen] UserStats creation error: $e');
+      }
+
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (_) => OtpVerificationScreen(
+              email: email,
+              username: username,
+              firstName: firstName,
+              lastName: lastName,
+            ),
+          ),
+          (route) => false,
+        );
       }
     } catch (e) {
       String errorMessage = 'Registration failed';
@@ -113,6 +113,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         final statusText = _getStatusCodeText(e.statusCode);
         errorMessage = '$statusText : ${e.message}';
       }
+      print('[RegisterScreen] Registration error: $e');
       if (mounted) {
         _showSnack(errorMessage);
       }

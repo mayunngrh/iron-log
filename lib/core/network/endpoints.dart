@@ -5,6 +5,8 @@ class Endpoints {
   // ── Auth Endpoints ────────────────────────────────────────────────────────
   static const String signup = '$baseUrl/$apiVersion/auth/signup';
   static const String login = '$baseUrl/$apiVersion/auth/signin';
+  static const String verifyOtp = '$baseUrl/$apiVersion/auth/verifyOTP';
+  static const String resendOtp = '$baseUrl/$apiVersion/auth/resendOTP';
 
   // ── Exercises Endpoints ───────────────────────────────────────────────────
   static const String exercises = '$baseUrl/$apiVersion/exercises';

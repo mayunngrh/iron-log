@@ -26,4 +26,22 @@ class AuthRepository {
       'password': password,
     });
   }
+
+  Future<Map<String, dynamic>> verifyOtp({
+    required String email,
+    required String otpCode,
+  }) async {
+    return _apiClient.post(Endpoints.verifyOtp, {
+      'email': email,
+      'otpCode': otpCode,
+    });
+  }
+
+  Future<Map<String, dynamic>> resendOtp({
+    required String email,
+  }) async {
+    return _apiClient.post(Endpoints.resendOtp, {
+      'email': email,
+    });
+  }
 }
